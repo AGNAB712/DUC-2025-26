@@ -1,0 +1,69 @@
+package org.firstinspires.ftc.teamcode.teleop;
+
+import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrent;
+import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrentAndHistory;
+import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
+
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.configurables.annotations.IgnoreConfigurable;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+import org.firstinspires.ftc.teamcode.lib.Hardware;
+
+@Configurable
+@TeleOp(name = "Teleop", group = "Teleop")
+class Drive extends OpMode {
+
+    @IgnoreConfigurable
+    static public TelemetryManager telemetryM;
+    @IgnoreConfigurable
+    Hardware robot = new Hardware();
+
+    @Override
+    public void init() {
+        telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
+        robot.init(hardwareMap);
+    }
+
+    @Override
+    public void init_loop() {
+        telemetryM.debug("This will print your robot's position to telemetry while "
+                + "allowing robot control through a basic mecanum drive on gamepad 1.");
+        telemetryM.update(telemetry);
+        follower.update();
+        drawCurrent();
+    }
+
+    @Override
+    public void start() {
+        follower.startTeleopDrive();
+        follower.update();
+    }
+
+    /**
+     * This updates the robot's pose estimate, the simple mecanum drive, and updates the
+     * Panels telemetry with the robot's position as well as draws the robot's position.
+     */
+    @Override
+    public void loop() {
+        follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, true);
+        follower.update();
+
+        telemetryM.debug("x:" + follower.getPose().getX());
+        telemetryM.debug("y:" + follower.getPose().getY());
+        telemetryM.debug("heading:" + follower.getPose().getHeading());
+        telemetryM.debug("total heading:" + follower.getTotalHeading());
+        float[] hsv = robot.intake1.colorSensor.getHSV();
+        telemetryM.debug("Hue sensor 1:" + hsv[0]);
+        telemetryM.debug("Sat sensor 1:" + hsv[1]);
+        telemetryM.debug("Val sensor 1:" + hsv[2]);
+        telemetryM.update(telemetry);
+
+
+
+        drawCurrentAndHistory();
+    }
+}
