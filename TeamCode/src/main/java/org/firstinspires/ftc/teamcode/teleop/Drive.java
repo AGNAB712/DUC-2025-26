@@ -8,23 +8,33 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.configurables.annotations.IgnoreConfigurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.lib.Hardware;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifactsGreen;
+import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifactsPurple;
+import org.firstinspires.ftc.vision.VisionPortal;
 
 @Configurable
 @TeleOp(name = "Teleop", group = "Teleop")
-class Drive extends OpMode {
+public class Drive extends OpMode {
 
     @IgnoreConfigurable
     static public TelemetryManager telemetryM;
     @IgnoreConfigurable
     Hardware robot = new Hardware();
+    @IgnoreConfigurable
+    Follower follower;
 
     @Override
     public void init() {
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(new Pose());
         robot.init(hardwareMap);
     }
 
@@ -34,7 +44,7 @@ class Drive extends OpMode {
                 + "allowing robot control through a basic mecanum drive on gamepad 1.");
         telemetryM.update(telemetry);
         follower.update();
-        drawCurrent();
+        //drawCurrent();
     }
 
     @Override
@@ -56,14 +66,16 @@ class Drive extends OpMode {
         telemetryM.debug("y:" + follower.getPose().getY());
         telemetryM.debug("heading:" + follower.getPose().getHeading());
         telemetryM.debug("total heading:" + follower.getTotalHeading());
-        float[] hsv = robot.intake1.colorSensor.getHSV();
-        telemetryM.debug("Hue sensor 1:" + hsv[0]);
-        telemetryM.debug("Sat sensor 1:" + hsv[1]);
-        telemetryM.debug("Val sensor 1:" + hsv[2]);
+        float[] hsv = robot.csensor1.getHSV();
+        telemetryM.debug("R sensor 1:" + hsv[0]);
+        telemetryM.debug("G sensor 1:" + hsv[1]);
+        telemetryM.debug("B sensor 1:" + hsv[2]);
+        telemetryM.debug("Color:" + robot.csensor1.detectColor());
+        robot.sorter.updateServo(robot.csensor1.detectColor());
         telemetryM.update(telemetry);
 
 
 
-        drawCurrentAndHistory();
+        //drawCurrentAndHistory();
     }
 }
