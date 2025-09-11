@@ -7,6 +7,8 @@ import com.arcrobotics.ftclib.hardware.SensorColor;
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.arcrobotics.ftclib.hardware.motors.CRServo;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -169,5 +171,29 @@ public class Hardware {
                 return ArtifactType.NONE;
             }
         }*/
+    }
+
+    public static class Shooter {
+        public double yaw = 0;
+        public double pitch = 0;
+        public Shooter() {
+
+        }
+
+        void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
+            Pose projectedPosition = new Pose(currentPosition.getX() + robotVelocity.getXComponent(), currentPosition.getY() + robotVelocity.getYComponent());
+            double theta = Math.toDegrees(
+                    Math.atan(
+                            (positionToPoint.getX() - currentPosition.getX())
+                            /
+                            (positionToPoint.getY() - currentPosition.getY())
+                    )
+            ) - robotHeading;
+            updateYaw(theta);
+        }
+        void updateYaw(double yawToPoint) {
+            //add servo logic here later
+            yaw = yawToPoint;
+        }
     }
 }

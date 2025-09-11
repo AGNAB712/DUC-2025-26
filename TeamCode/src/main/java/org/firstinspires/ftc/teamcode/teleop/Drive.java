@@ -77,6 +77,8 @@ public class Drive extends OpMode {
         robot.csensor1.trackColor(detectedArtifact);
         telemetryM.debug("current sequence:" + robot.csensor1.getSequence());
         robot.sorter.updateServo(detectedArtifact);
+        telemetryM.debug("velocity x:" + follower.getVelocity().getXComponent());
+        telemetryM.debug("velocity y:" + follower.getVelocity().getYComponent());
         telemetryM.update(telemetry);
 
 
