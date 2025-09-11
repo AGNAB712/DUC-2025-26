@@ -71,6 +71,8 @@ public class Drive extends OpMode {
         telemetryM.debug("G sensor 1:" + hsv[1]);
         telemetryM.debug("B sensor 1:" + hsv[2]);
         telemetryM.debug("Color:" + robot.csensor1.detectColor());
+        telemetryM.debug("purple:" + robot.csensor1.contourAmount()[1]);
+        telemetryM.debug("green:" + robot.csensor1.contourAmount()[0]);
         robot.sorter.updateServo(robot.csensor1.detectColor());
         telemetryM.update(telemetry);
 

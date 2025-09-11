@@ -19,7 +19,7 @@ public class ducProcessorArtifactsGreen implements VisionProcessor {
 
     public Scalar redLower = new Scalar(82.2, 66.8, 131.8);
     public Scalar redUpper = new Scalar(134.6, 255.0, 255.0);
-    public Scalar greenLower = new Scalar(45.0, 0.0, 0.0);
+    public Scalar greenLower = new Scalar(93.0, 177.0, 55.0);
     public Scalar greenUpper = new Scalar(134.6, 255.0, 255.0);
     public Scalar purpleLower = new Scalar(121.0, 46.0, 0.0);
     public Scalar purpleUpper = new Scalar(255.0, 255.0, 255.0);
@@ -42,7 +42,7 @@ public class ducProcessorArtifactsGreen implements VisionProcessor {
 
     public ArrayList<MatOfPoint> contours = new ArrayList<>();
 
-    public double contourAmount = 1;
+    public double contourArea = 0;
 
     @Override
     public void init(int width, int height, CameraCalibration calibration) {
@@ -66,7 +66,7 @@ public class ducProcessorArtifactsGreen implements VisionProcessor {
 
         Imgproc.rectangle(frame, mainRect, new Scalar(100,0,222));
 
-        contourAmount = 0;
+        contourArea = 0;
 
         //AREA 1
         //detectContours(redFirst, mainRect, contours, frame, 1);
@@ -96,9 +96,16 @@ public class ducProcessorArtifactsGreen implements VisionProcessor {
 
         Imgproc.findContours(box, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
+        contourArea = 0;
+
         for (MatOfPoint contour : contours) {
             double width = calculateWidth(contour);
             double height = calculateHeight(contour);
+            double area = width * height;
+
+            if (area > contourArea && area < 150000) {
+                contourArea = width * height;
+            }
 
             width -= 2;
             height -= 2;
@@ -116,15 +123,13 @@ public class ducProcessorArtifactsGreen implements VisionProcessor {
             );
         }
 
-        Imgproc.putText(frame, Integer.toString(contours.size()), new Point(rectangle.x, 400), Imgproc.FONT_HERSHEY_COMPLEX, 1, new Scalar(255,255,255));
-        if (contours.size() > 0) {
-            contourAmount = contours.size();
-        }
+        Imgproc.putText(frame, Double.toString(contourArea), new Point(rectangle.x, 400), Imgproc.FONT_HERSHEY_COMPLEX, 1, new Scalar(255,255,255));
+
         contours.clear();
 
     }
 
     public double getContours() {
-        return contourAmount;
+        return contourArea;
     }
 }

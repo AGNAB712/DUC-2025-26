@@ -22,8 +22,9 @@ public class Hardware {
     public static IntakeSensor csensor1;
     public static Sorter sorter;
     private static ducProcessorArtifactsGreen ducProcessorGreen;
-    private ducProcessorArtifactsPurple ducProcessorPurple;
+    private static ducProcessorArtifactsPurple ducProcessorPurple;
     public VisionPortal visionPortal;
+    public VisionPortal visionPortal2;
     public enum ArtifactType {
         GREEN,
         PURPLE,
@@ -36,20 +37,15 @@ public class Hardware {
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 360));
         csensor1 = new IntakeSensor(new SensorColor(hwMap, "color1"));
 
-        ducProcessorGreen = new ducProcessorArtifactsGreen();
+        //ducProcessorGreen = new ducProcessorArtifactsGreen();
         ducProcessorPurple = new ducProcessorArtifactsPurple();
 
         visionPortal = new VisionPortal.Builder()
-                .addProcessor(ducProcessorGreen)
-                .addProcessor(ducProcessorPurple)
-                .setCameraResolution(new Size(640, 480))
                 .setCamera(hwMap.get(WebcamName.class, "Webcam 1"))
-                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
-                .enableLiveView(true)
-                .setAutoStopLiveView(false)
+                //.addProcessor(ducProcessorGreen)
+                .addProcessor(ducProcessorPurple)
                 .build();
 
-        while (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {}
         //intake1.init(new CRServo(hwMap, "intake1"), new SensorColor(hwMap, "color1"));
         //intake2.init(new CRServo(hwMap, "intake2"), new SensorColor(hwMap, "color2"));
     }
@@ -115,14 +111,17 @@ public class Hardware {
         public static float[] getRGB() {
             return new float[] {sensor.red(), sensor.green(), sensor.blue()};
         }
+        public static double[] contourAmount() {
+            return (new double[] {ducProcessorPurple.getContourGreen(), ducProcessorPurple.getContourPurple()});
+        }
         public static ArtifactType detectColor() {
-            double greenContourAmount = ducProcessorGreen.getContours();
-            double purpleContourAmount = ducProcessorGreen.getContours();
+            double greenContourAmount = ducProcessorPurple.getContourGreen();
+            double purpleContourAmount = ducProcessorPurple.getContourPurple();
             if (greenContourAmount == 0 && purpleContourAmount == 0) {
                 return ArtifactType.NONE;
             } else if (greenContourAmount > purpleContourAmount) {
                 return ArtifactType.GREEN;
-            } else if (purpleContourAmount >= greenContourAmount) {
+            } else if (purpleContourAmount > greenContourAmount) {
                 return ArtifactType.PURPLE;
             }
             return ArtifactType.NONE;

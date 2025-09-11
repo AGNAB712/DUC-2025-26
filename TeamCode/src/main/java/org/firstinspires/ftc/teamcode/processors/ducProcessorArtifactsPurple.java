@@ -19,9 +19,9 @@ public class ducProcessorArtifactsPurple implements VisionProcessor {
 
     public Scalar redLower = new Scalar(82.2, 66.8, 131.8);
     public Scalar redUpper = new Scalar(134.6, 255.0, 255.0);
-    public Scalar greenLower = new Scalar(45.0, 0.0, 0.0);
+    public Scalar greenLower = new Scalar(93.0, 177.0, 55.0);
     public Scalar greenUpper = new Scalar(134.6, 255.0, 255.0);
-    public Scalar purpleLower = new Scalar(121.0, 46.0, 0.0);
+    public Scalar purpleLower = new Scalar(1.0, 228.0, 48.0);
     public Scalar purpleUpper = new Scalar(255.0, 255.0, 255.0);
 
     public Rect theFirstOne = new Rect(0, 0, 40, 40);
@@ -37,12 +37,16 @@ public class ducProcessorArtifactsPurple implements VisionProcessor {
 
 
     boolean tuning = false;
-    public Mat hsv = new Mat();
-    public Mat threshold = new Mat();
+    public Mat hsvPurple = new Mat();
+    public Mat hsvGreen = new Mat();
+    public Mat thresholdGreen = new Mat();
+    public Mat thresholdPurple = new Mat();
 
-    public ArrayList<MatOfPoint> contours = new ArrayList<>();
+    public ArrayList<MatOfPoint> contoursGreen = new ArrayList<>();
+    public ArrayList<MatOfPoint> contoursPurple = new ArrayList<>();
 
-    public double contourAmount = 1;
+    public double contourAreaGreen = 0;
+    public double contourAreaPurple = 0;
 
     @Override
     public void init(int width, int height, CameraCalibration calibration) {
@@ -50,31 +54,43 @@ public class ducProcessorArtifactsPurple implements VisionProcessor {
     }
 
     @Override
-    public Object processFrame(Mat frame, long captureTimeNanos) {
+    public Object processFrame(Mat frameMain, long captureTimeNanos) {
+
+        Mat frameGreen = frameMain.clone();
+        Mat framePurple = frameMain.clone();
 
         if (tuning) {
-            Imgproc.cvtColor(frame, frame, Imgproc.COLOR_RGB2HSV);
-            Core.inRange(frame, purpleLower, purpleUpper, frame);
-            greenMat = new Mat(frame, mainRect);
-            purpleMat = new Mat(frame, mainRect);
+            Imgproc.cvtColor(frameGreen, frameGreen, Imgproc.COLOR_RGB2HSV);
+            Core.inRange(frameGreen, greenLower, greenUpper, frameGreen);
+            greenMat = new Mat(frameGreen, mainRect);
+
+            Imgproc.cvtColor(framePurple, framePurple, Imgproc.COLOR_RGB2HSV);
+            Core.inRange(framePurple, purpleLower, purpleUpper, framePurple);
+            purpleMat = new Mat(framePurple, mainRect);
         } else {
-            Imgproc.cvtColor(frame, hsv, Imgproc.COLOR_RGB2HSV);
-            Core.inRange(hsv, purpleLower, purpleUpper, threshold);
-            greenMat = new Mat(threshold, mainRect);
-            purpleMat = new Mat(threshold, mainRect);
+            Imgproc.cvtColor(frameGreen, hsvGreen, Imgproc.COLOR_RGB2HSV);
+            Core.inRange(hsvGreen, greenLower, greenUpper, thresholdGreen);
+            greenMat = new Mat(thresholdGreen, mainRect);
+
+            Imgproc.cvtColor(framePurple, hsvPurple, Imgproc.COLOR_RGB2HSV);
+            Core.inRange(hsvPurple, purpleLower, purpleUpper, thresholdPurple);
+            purpleMat = new Mat(thresholdPurple, mainRect);
         }
 
-        Imgproc.rectangle(frame, mainRect, new Scalar(100,0,222));
+        Imgproc.rectangle(frameGreen, mainRect, new Scalar(100,0,222));
+        Imgproc.rectangle(framePurple, mainRect, new Scalar(100,0,222));
 
-        contourAmount = 0;
+        contourAreaGreen = 0;
+        contourAreaPurple = 0;
 
         //AREA 1
         //detectContours(redFirst, mainRect, contours, frame, 1);
 
         //AREA 2
-        detectContours(purpleMat, mainRect, contours, frame, 2);
+        detectContours(greenMat, mainRect, contoursGreen, frameGreen, frameMain, true);
+        detectContours(purpleMat, mainRect, contoursPurple, framePurple, frameMain, false);
 
-        return frame;
+        return frameMain;
     }
 
     @Override
@@ -92,13 +108,31 @@ public class ducProcessorArtifactsPurple implements VisionProcessor {
         return boundingRect.height;
     }
 
-    private void detectContours(Mat box, Rect rectangle, ArrayList<MatOfPoint> contours, Mat frame, double number) {
+    private void detectContours(Mat box, Rect rectangle, ArrayList<MatOfPoint> contours, Mat frame, Mat masterFrame, boolean isGreen) {
 
         Imgproc.findContours(box, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        if (isGreen) {
+            contourAreaGreen = 0;
+        } else {
+            contourAreaPurple = 0;
+        }
 
         for (MatOfPoint contour : contours) {
             double width = calculateWidth(contour);
             double height = calculateHeight(contour);
+            double area = width * height;
+
+            if (isGreen) {
+                if (area > contourAreaGreen && area < 150000 && area > 8000) {
+                    contourAreaGreen = width * height;
+                }
+            } else {
+                if (area > contourAreaPurple && area < 150000 && area > 8000) {
+                    contourAreaPurple = width * height;
+                }
+            }
+
 
             width -= 2;
             height -= 2;
@@ -107,24 +141,32 @@ public class ducProcessorArtifactsPurple implements VisionProcessor {
             double cX = moments.get_m10() / moments.get_m00();
             double cY = moments.get_m01() / moments.get_m00();
 
+            Scalar color;
+            if (isGreen) {
+                color = new Scalar(0,240,0);
+            } else {
+                color = new Scalar(120,0,120);
+            }
+
             Imgproc.rectangle(
-                    frame,
+                    masterFrame,
                     new Point(cX - (width/2) + rectangle.x, cY - (height/2) + rectangle.y),
                     new Point(cX + (width/2) + rectangle.x, cY + (height/2) + rectangle.y),
-                    new Scalar(240,240,240),
+                    color,
                     2
             );
         }
 
-        Imgproc.putText(frame, Integer.toString(contours.size()), new Point(rectangle.x, 400), Imgproc.FONT_HERSHEY_COMPLEX, 1, new Scalar(255,255,255));
-        if (contours.size() > 0) {
-            contourAmount = contours.size();
-        }
+        Imgproc.putText(masterFrame, Double.toString(contourAreaGreen), new Point(rectangle.x, 400), Imgproc.FONT_HERSHEY_COMPLEX, 1, new Scalar(255,255,255));
+
         contours.clear();
 
     }
 
-    public double getContours() {
-        return contourAmount;
+    public double getContourGreen() {
+        return contourAreaGreen;
+    }
+    public double getContourPurple() {
+        return contourAreaPurple;
     }
 }
