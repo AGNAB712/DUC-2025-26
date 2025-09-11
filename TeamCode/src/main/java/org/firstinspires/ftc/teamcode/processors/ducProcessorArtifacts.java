@@ -15,7 +15,7 @@ import org.opencv.imgproc.Moments;
 
 import java.util.ArrayList;
 
-public class ducProcessorArtifactsPurple implements VisionProcessor {
+public class ducProcessorArtifacts implements VisionProcessor {
 
     public Scalar redLower = new Scalar(82.2, 66.8, 131.8);
     public Scalar redUpper = new Scalar(134.6, 255.0, 255.0);

@@ -10,9 +10,11 @@ import com.arcrobotics.ftclib.hardware.motors.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifactsGreen;
-import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifactsPurple;
+import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifacts;
 import org.firstinspires.ftc.vision.VisionPortal;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Hardware {
 
@@ -21,10 +23,6 @@ public class Hardware {
     //public Intake intake2 = new Intake();
     public static IntakeSensor csensor1;
     public static Sorter sorter;
-    private static ducProcessorArtifactsGreen ducProcessorGreen;
-    private static ducProcessorArtifactsPurple ducProcessorPurple;
-    public VisionPortal visionPortal;
-    public VisionPortal visionPortal2;
     public enum ArtifactType {
         GREEN,
         PURPLE,
@@ -35,16 +33,9 @@ public class Hardware {
         this.hwMap = hwMap;
 
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 360));
-        csensor1 = new IntakeSensor(new SensorColor(hwMap, "color1"));
+        csensor1 = new IntakeSensor(hwMap.get(WebcamName.class, "Webcam 1"));
 
-        //ducProcessorGreen = new ducProcessorArtifactsGreen();
-        ducProcessorPurple = new ducProcessorArtifactsPurple();
 
-        visionPortal = new VisionPortal.Builder()
-                .setCamera(hwMap.get(WebcamName.class, "Webcam 1"))
-                //.addProcessor(ducProcessorGreen)
-                .addProcessor(ducProcessorPurple)
-                .build();
 
         //intake1.init(new CRServo(hwMap, "intake1"), new SensorColor(hwMap, "color1"));
         //intake2.init(new CRServo(hwMap, "intake2"), new SensorColor(hwMap, "color2"));
@@ -54,11 +45,11 @@ public class Hardware {
         public CRServo intakeContServo;
         public IntakeSensor colorSensor;
         public boolean isRotating;
-        public void init(CRServo myServo, SensorColor myColorSensor) {
+        public void init(CRServo myServo, WebcamName webcam) {
             this.intakeContServo = myServo;
             this.isRotating = false;
             this.stop();
-            this.colorSensor = new IntakeSensor(myColorSensor);
+            this.colorSensor = new IntakeSensor(webcam);
         }
 
         public void setRotation(boolean rotationSet) {
@@ -95,36 +86,60 @@ public class Hardware {
         public void neutral() {this.sorterServo.turnToAngle(neutralPosition);}
     }
     public static class IntakeSensor {
-        private static SensorColor sensor;
-        public static int[] greenThresholdsHSV = {1, 1, 1};
-        public static int[] purpleThresholdsHSV = {1, 1, 1};
-        public static int distanceAllowed = 100;
-        public IntakeSensor(SensorColor mySensor) {
-            this.sensor = mySensor;
+        private static VisionPortal visionPortal;
+        private static ducProcessorArtifacts processor;
+        public ArtifactType currentColor = ArtifactType.NONE;
+        private int noneCount = 0;
+        private final int noneThreshold = 15;
+        private List<ArtifactType> sequence = new ArrayList<>();
+
+        public IntakeSensor(WebcamName webcam) {
+            this.processor = new ducProcessorArtifacts();
+            this.visionPortal = visionPortal = new VisionPortal.Builder()
+                    .setCamera(webcam)
+                    .addProcessor(this.processor)
+                    .build();;
         }
 
-        public static float[] getHSV() {
-            float[] hsvValues = {0F, 0F, 0F};
-            Color.RGBToHSV(sensor.red() * 8, sensor.green()*8, sensor.blue()*8, hsvValues);
-            return hsvValues;
+        public double[] contourAmount() {
+            return (new double[] {this.processor.getContourGreen(), this.processor.getContourPurple()});
         }
-        public static float[] getRGB() {
-            return new float[] {sensor.red(), sensor.green(), sensor.blue()};
-        }
-        public static double[] contourAmount() {
-            return (new double[] {ducProcessorPurple.getContourGreen(), ducProcessorPurple.getContourPurple()});
-        }
-        public static ArtifactType detectColor() {
-            double greenContourAmount = ducProcessorPurple.getContourGreen();
-            double purpleContourAmount = ducProcessorPurple.getContourPurple();
+        public ArtifactType detectColor() {
+            double greenContourAmount = this.processor.getContourGreen();
+            double purpleContourAmount = this.processor.getContourPurple();
+            ArtifactType toReturn = ArtifactType.NONE;
             if (greenContourAmount == 0 && purpleContourAmount == 0) {
-                return ArtifactType.NONE;
+                toReturn = ArtifactType.NONE;
             } else if (greenContourAmount > purpleContourAmount) {
-                return ArtifactType.GREEN;
+                toReturn = ArtifactType.GREEN;
             } else if (purpleContourAmount > greenContourAmount) {
-                return ArtifactType.PURPLE;
+                toReturn = ArtifactType.PURPLE;
             }
-            return ArtifactType.NONE;
+
+            return toReturn;
+        }
+
+        public void trackColor(ArtifactType detectedColor) {
+            if (detectedColor != ArtifactType.NONE) {
+                noneCount = 0;
+
+                // only add when coming from "none" to a color
+                if (currentColor == ArtifactType.NONE) {
+                    currentColor = detectedColor;
+                    sequence.add(currentColor);
+                } else {
+                    currentColor = detectedColor;
+                }
+            } else {
+                noneCount++;
+                if (noneCount >= noneThreshold) {
+                    currentColor = ArtifactType.NONE;
+                }
+            }
+        }
+
+        public List<ArtifactType> getSequence() {
+            return sequence;
         }
             /*float[] hsvValues = getHSV();
             int greenMatch = 0;
