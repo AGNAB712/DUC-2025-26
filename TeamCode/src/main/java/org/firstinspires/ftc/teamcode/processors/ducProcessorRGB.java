@@ -15,11 +15,14 @@ import org.openftc.easyopencv.OpenCvPipeline;
 public class ducProcessorRGB implements VisionProcessor {
     private static final Scalar BLUE = new Scalar(0, 0, 255);
     private static final Scalar GREEN = new Scalar(0, 255, 0);
-    private static final Scalar PURPLE = new Scalar(128, 0, 127);
+    private static final Scalar RED = new Scalar(255, 0, 0);
 
+    private static final double[] purpleReference = new double[] {145, 96, 146};
+    private static final double[] greenReference = new double[] {60, 146, 125};
 
-    Point mainScanAreaTopLeft = new Point(50, 140);
-    Point mainScanAreaBottomRight = new Point(150, 240);
+    int offset = 65;
+    Point mainScanAreaTopLeft = new Point(65, 55 + offset);
+    Point mainScanAreaBottomRight = new Point(110, 105 + offset);
 
 
     Mat scanArea_Cb;
@@ -27,10 +30,11 @@ public class ducProcessorRGB implements VisionProcessor {
     private volatile int averageBlue;
     private volatile int averageGreen;
     private volatile int averageRed;
+    private double[] averageColors = {0, 0, 0};
 
-    private volatile TYPE type = TYPE.TEAM_ELEMENT;
-    private  volatile TYPE2 type2 = TYPE2.NOT_FOUND;
-    private  volatile TYPE3 type3 = TYPE3.level3;
+    int cameraWidth = 0;
+    int cameraHeight = 0;
+
 
 
     //  private void inputToCb(Mat input) {
@@ -40,7 +44,8 @@ public class ducProcessorRGB implements VisionProcessor {
     @Override
     public void init(int width, int height, CameraCalibration calibration) {
         //inputToCb(input);
-
+        cameraWidth = width;
+        cameraHeight = height;
 
     }
 
@@ -59,31 +64,37 @@ public class ducProcessorRGB implements VisionProcessor {
         averageBlue = (int) Core.mean(scanArea_Cb).val[2];
         Imgproc.rectangle(input, mainScanAreaTopLeft, mainScanAreaBottomRight, BLUE, 2);
 
-        Imgproc.putText(input, Double.toString(averageGreen), new Point(0, 400), Imgproc.FONT_HERSHEY_COMPLEX, 1, GREEN);
-        Imgproc.putText(input, Double.toString(averageRed), new Point(100, 400), Imgproc.FONT_HERSHEY_COMPLEX, 1, new Scalar(255, 0, 0));
-        Imgproc.putText(input, Double.toString(averageBlue), new Point(200, 400), Imgproc.FONT_HERSHEY_COMPLEX, 1, BLUE);
+        Imgproc.putText(input, Double.toString(averageRed), new Point(0, 10), Imgproc.FONT_HERSHEY_COMPLEX, 0.5, RED);
+        Imgproc.putText(input, Double.toString(averageGreen), new Point(50, 10), Imgproc.FONT_HERSHEY_COMPLEX, 0.5, GREEN);
+        Imgproc.putText(input, Double.toString(averageBlue), new Point(100, 10), Imgproc.FONT_HERSHEY_COMPLEX, 0.5, BLUE);
+        averageColors = new double[] {averageRed, averageGreen, averageBlue};
+
+        double distanceGreen = getContourGreen();
+        double distancePurple = getContourPurple();
+        Imgproc.putText(input, Double.toString(distanceGreen), new Point(0, 20), Imgproc.FONT_HERSHEY_COMPLEX, 0.5, new Scalar(greenReference));
+        Imgproc.putText(input, Double.toString(distancePurple), new Point(50, 20), Imgproc.FONT_HERSHEY_COMPLEX, 0.5, new Scalar(purpleReference));
 
         return input;
     }
 
 
-    public TYPE getType() {
-        return type;
+    public double getContourGreen() {
+        double toReturn = 0;
+        for (int i =0; i < greenReference.length; i++) {
+            double distance = Math.abs(averageColors[i] - greenReference[i]);
+            toReturn = toReturn+distance;
+        }
+        return toReturn;
     }
-    public TYPE2 getType2(){
-        return  type2;
+
+    public double getContourPurple() {
+        double toReturnPurple = 0;
+        for (int i =0; i < purpleReference.length; i++) {
+            double distance = Math.abs(averageColors[i] - purpleReference[i]);
+            toReturnPurple = toReturnPurple+distance;
+        }
+        return toReturnPurple;
     }
-    public TYPE3 getType3(){
-        return  type3;
-    }
-    public enum TYPE {
-        TEAM_ELEMENT, NOTHING
-    }
-    public enum  TYPE2{
-        LEFT,MIDDLE,RIGHT,NOT_FOUND
-    }
-    public enum  TYPE3{
-        level1, level2,level3
-    }
+
 
 }
