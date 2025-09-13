@@ -27,7 +27,7 @@ public class ducProcessorArtifacts implements VisionProcessor {
     public Rect theFirstOne = new Rect(0, 0, 40, 40);
     public Rect theSecondOne = new Rect(0, 0, 40, 40);
     public Rect theThirdOne = new Rect(0, 0, 40, 40);
-    public Rect mainRect = new Rect(0, 0, 640, 480);
+    public Rect mainRect = new Rect(0, 80, 200, 80);
 
     public Mat redFirst = new Mat();
     public Mat redSecond = new Mat();
@@ -36,7 +36,7 @@ public class ducProcessorArtifacts implements VisionProcessor {
     public Mat purpleMat = new Mat();
 
 
-    boolean tuning = false;
+    boolean tuning = true;
     public Mat hsvPurple = new Mat();
     public Mat hsvGreen = new Mat();
     public Mat thresholdGreen = new Mat();
@@ -60,13 +60,26 @@ public class ducProcessorArtifacts implements VisionProcessor {
         Mat framePurple = frameMain.clone();
 
         if (tuning) {
-            Imgproc.cvtColor(frameGreen, frameGreen, Imgproc.COLOR_RGB2HSV);
-            Core.inRange(frameGreen, greenLower, greenUpper, frameGreen);
-            greenMat = new Mat(frameGreen, mainRect);
+            Imgproc.cvtColor(frameMain, frameMain, Imgproc.COLOR_RGB2HSV);
+            Core.inRange(frameMain, greenLower, greenUpper, frameMain);
+            greenMat = new Mat(frameMain, mainRect);
 
-            Imgproc.cvtColor(framePurple, framePurple, Imgproc.COLOR_RGB2HSV);
-            Core.inRange(framePurple, purpleLower, purpleUpper, framePurple);
+            //Imgproc.cvtColor(framePurple, framePurple, Imgproc.COLOR_RGB2HSV);
+            //Core.inRange(framePurple, purpleLower, purpleUpper, framePurple);
             purpleMat = new Mat(framePurple, mainRect);
+
+            Imgproc.rectangle(frameMain, mainRect, new Scalar(100,0,222));
+            //Imgproc.rectangle(framePurple, mainRect, new Scalar(100,0,222));
+
+            contourAreaGreen = 0;
+            //contourAreaPurple = 0;
+
+            //AREA 1
+            //detectContours(redFirst, mainRect, contours, frame, 1);
+
+            //AREA 2
+            //detectContours(greenMat, mainRect, contoursGreen, frameMain, frameMain, true);
+            //detectContours(purpleMat, mainRect, contoursPurple, framePurple, frameMain, false);
         } else {
             Imgproc.cvtColor(frameGreen, hsvGreen, Imgproc.COLOR_RGB2HSV);
             Core.inRange(hsvGreen, greenLower, greenUpper, thresholdGreen);
@@ -75,20 +88,22 @@ public class ducProcessorArtifacts implements VisionProcessor {
             Imgproc.cvtColor(framePurple, hsvPurple, Imgproc.COLOR_RGB2HSV);
             Core.inRange(hsvPurple, purpleLower, purpleUpper, thresholdPurple);
             purpleMat = new Mat(thresholdPurple, mainRect);
+
+            Imgproc.rectangle(frameGreen, mainRect, new Scalar(100,0,222));
+            Imgproc.rectangle(framePurple, mainRect, new Scalar(100,0,222));
+
+            contourAreaGreen = 0;
+            contourAreaPurple = 0;
+
+            //AREA 1
+            //detectContours(redFirst, mainRect, contours, frame, 1);
+
+            //AREA 2
+            detectContours(greenMat, mainRect, contoursGreen, frameGreen, frameMain, true);
+            detectContours(purpleMat, mainRect, contoursPurple, framePurple, frameMain, false);
         }
 
-        Imgproc.rectangle(frameGreen, mainRect, new Scalar(100,0,222));
-        Imgproc.rectangle(framePurple, mainRect, new Scalar(100,0,222));
 
-        contourAreaGreen = 0;
-        contourAreaPurple = 0;
-
-        //AREA 1
-        //detectContours(redFirst, mainRect, contours, frame, 1);
-
-        //AREA 2
-        detectContours(greenMat, mainRect, contoursGreen, frameGreen, frameMain, true);
-        detectContours(purpleMat, mainRect, contoursPurple, framePurple, frameMain, false);
 
         return frameMain;
     }

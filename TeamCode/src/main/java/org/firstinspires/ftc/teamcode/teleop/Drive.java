@@ -15,9 +15,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.lib.Hardware;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifactsGreen;
-import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifactsPurple;
-import org.firstinspires.ftc.vision.VisionPortal;
+
 
 @Configurable
 @TeleOp(name = "Teleop", group = "Teleop")
@@ -66,10 +64,10 @@ public class Drive extends OpMode {
         telemetryM.debug("y:" + follower.getPose().getY());
         telemetryM.debug("heading:" + follower.getPose().getHeading());
         telemetryM.debug("total heading:" + follower.getTotalHeading());
-        float[] hsv = robot.csensor1.getHSV();
-        telemetryM.debug("R sensor 1:" + hsv[0]);
-        telemetryM.debug("G sensor 1:" + hsv[1]);
-        telemetryM.debug("B sensor 1:" + hsv[2]);
+        //float[] hsv = robot.csensor1.getHSV();
+        //telemetryM.debug("R sensor 1:" + hsv[0]);
+        //telemetryM.debug("G sensor 1:" + hsv[1]);
+        //telemetryM.debug("B sensor 1:" + hsv[2]);
         Hardware.ArtifactType detectedArtifact = robot.csensor1.detectColor();
         telemetryM.debug("Color:" + detectedArtifact);
         telemetryM.debug("purple lcontour:" + robot.csensor1.contourAmount()[1]);
