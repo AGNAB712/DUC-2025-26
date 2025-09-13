@@ -19,15 +19,15 @@ public class ducProcessorArtifacts implements VisionProcessor {
 
     public Scalar redLower = new Scalar(82.2, 66.8, 131.8);
     public Scalar redUpper = new Scalar(134.6, 255.0, 255.0);
-    public Scalar greenLower = new Scalar(93.0, 177.0, 55.0);
-    public Scalar greenUpper = new Scalar(134.6, 255.0, 255.0);
-    public Scalar purpleLower = new Scalar(1.0, 228.0, 48.0);
-    public Scalar purpleUpper = new Scalar(255.0, 255.0, 255.0);
+    public Scalar greenLower = new Scalar(85.0, 133.2, 49.0);
+    public Scalar greenUpper = new Scalar(93.5, 255.0, 222.4);
+    public Scalar purpleLower = new Scalar(121.8, 36.8, 76.5);
+    public Scalar purpleUpper = new Scalar(179.9, 255.0, 255.0);
 
     public Rect theFirstOne = new Rect(0, 0, 40, 40);
     public Rect theSecondOne = new Rect(0, 0, 40, 40);
     public Rect theThirdOne = new Rect(0, 0, 40, 40);
-    public Rect mainRect = new Rect(0, 80, 200, 80);
+    public Rect mainRect;
 
     public Mat redFirst = new Mat();
     public Mat redSecond = new Mat();
@@ -36,11 +36,14 @@ public class ducProcessorArtifacts implements VisionProcessor {
     public Mat purpleMat = new Mat();
 
 
-    boolean tuning = true;
+    boolean tuning = false;
     public Mat hsvPurple = new Mat();
     public Mat hsvGreen = new Mat();
     public Mat thresholdGreen = new Mat();
     public Mat thresholdPurple = new Mat();
+
+    public double camWidth = 0;
+    public double camHeight = 0;
 
     public ArrayList<MatOfPoint> contoursGreen = new ArrayList<>();
     public ArrayList<MatOfPoint> contoursPurple = new ArrayList<>();
@@ -50,7 +53,11 @@ public class ducProcessorArtifacts implements VisionProcessor {
 
     @Override
     public void init(int width, int height, CameraCalibration calibration) {
+        camHeight = height;
+        camWidth = width;
+        int mainRectHeight = 80;
 
+        mainRect = new Rect(0, (height/2)-(mainRectHeight/2), width, mainRectHeight);
     }
 
     @Override
@@ -89,8 +96,7 @@ public class ducProcessorArtifacts implements VisionProcessor {
             Core.inRange(hsvPurple, purpleLower, purpleUpper, thresholdPurple);
             purpleMat = new Mat(thresholdPurple, mainRect);
 
-            Imgproc.rectangle(frameGreen, mainRect, new Scalar(100,0,222));
-            Imgproc.rectangle(framePurple, mainRect, new Scalar(100,0,222));
+            Imgproc.rectangle(frameMain, mainRect, new Scalar(100,0,222));
 
             contourAreaGreen = 0;
             contourAreaPurple = 0;
