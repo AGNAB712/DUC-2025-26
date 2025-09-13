@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.lib;
 
+import static com.qualcomm.robotcore.eventloop.opmode.OpMode.blackboard;
+import static org.firstinspires.ftc.robotcontroller.external.samples.ConceptBlackboard.TIMES_STARTED_KEY;
+
 import android.graphics.Color;
 import android.util.Size;
 
@@ -25,10 +28,28 @@ public class Hardware {
     //public Intake intake2 = new Intake();
     public static IntakeSensor csensor1;
     public static Sorter sorter;
+    public static List<ArtifactType> sequence = new ArrayList<>();
     public enum ArtifactType {
         GREEN,
         PURPLE,
         NONE
+    }
+    public enum Teams {
+        RED,
+        BLUE
+    }
+    public static final String TEAM_KEY = "Team";
+    Object team = blackboard.getOrDefault(TEAM_KEY, Teams.RED);
+
+    public List<ArtifactType> getCurrentArtifacts() {
+        return sequence;
+    }
+    public Object getCurrentTeam() {
+        return team;
+    }
+    public void setTeam(Teams newTeam) {
+        blackboard.put(TEAM_KEY, newTeam);
+        team = newTeam;
     }
 
     public void init(HardwareMap hwMap) {
@@ -93,7 +114,6 @@ public class Hardware {
         public ArtifactType currentColor = ArtifactType.NONE;
         private int noneCount = 0;
         private final int noneThreshold = 15;
-        private List<ArtifactType> sequence = new ArrayList<>();
 
         public IntakeSensor(WebcamName webcam) {
             this.processor = new ducProcessorArtifacts();
@@ -138,10 +158,6 @@ public class Hardware {
                     currentColor = ArtifactType.NONE;
                 }
             }
-        }
-
-        public List<ArtifactType> getSequence() {
-            return sequence;
         }
             /*float[] hsvValues = getHSV();
             int greenMatch = 0;

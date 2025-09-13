@@ -4,6 +4,8 @@ import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrent;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrentAndHistory;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
 
+import com.arcrobotics.ftclib.gamepad.GamepadEx;
+import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.configurables.annotations.IgnoreConfigurable;
 import com.bylazar.telemetry.PanelsTelemetry;
@@ -28,8 +30,13 @@ public class Drive extends OpMode {
     @IgnoreConfigurable
     Follower follower;
 
+    GamepadEx gamepadDrive;
+    GamepadEx gamepadSubsystem;
+
     @Override
     public void init() {
+        gamepadDrive = new GamepadEx(gamepad1);
+        gamepadSubsystem = new GamepadEx(gamepad2);
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose());
@@ -57,24 +64,31 @@ public class Drive extends OpMode {
      */
     @Override
     public void loop() {
-        follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, true);
+        follower.setTeleOpDrive(gamepadDrive.getLeftY(), -gamepadDrive.getLeftX(), -gamepadDrive.getRightX(), true);
         follower.update();
 
+        Hardware.ArtifactType detectedArtifact = robot.csensor1.detectColor();
+        robot.csensor1.trackColor(detectedArtifact);
+        robot.sorter.updateServo(detectedArtifact);
+
+        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.RIGHT_BUMPER)) {
+            if (robot.getCurrentTeam() == Hardware.Teams.RED) {
+                robot.setTeam(Hardware.Teams.BLUE);
+            } else {
+                robot.setTeam(Hardware.Teams.RED);
+            }
+        }
+
+        gamepadSubsystem.readButtons();
+        gamepadDrive.readButtons();
+
+        telemetryM.debug("team:" + robot.getCurrentTeam());
         telemetryM.debug("x:" + follower.getPose().getX());
         telemetryM.debug("y:" + follower.getPose().getY());
         telemetryM.debug("heading:" + follower.getPose().getHeading());
         telemetryM.debug("total heading:" + follower.getTotalHeading());
-        //float[] hsv = robot.csensor1.getHSV();
-        //telemetryM.debug("R sensor 1:" + hsv[0]);
-        //telemetryM.debug("G sensor 1:" + hsv[1]);
-        //telemetryM.debug("B sensor 1:" + hsv[2]);
-        Hardware.ArtifactType detectedArtifact = robot.csensor1.detectColor();
         telemetryM.debug("Color:" + detectedArtifact);
-        telemetryM.debug("purple lcontour:" + robot.csensor1.contourAmount()[1]);
-        telemetryM.debug("green lcontour:" + robot.csensor1.contourAmount()[0]);
-        robot.csensor1.trackColor(detectedArtifact);
-        telemetryM.debug("current sequence:" + robot.csensor1.getSequence());
-        robot.sorter.updateServo(detectedArtifact);
+        telemetryM.debug("current sequence:" + robot.getCurrentArtifacts());
         telemetryM.debug("velocity x:" + follower.getVelocity().getXComponent());
         telemetryM.debug("velocity y:" + follower.getVelocity().getYComponent());
         telemetryM.update(telemetry);
