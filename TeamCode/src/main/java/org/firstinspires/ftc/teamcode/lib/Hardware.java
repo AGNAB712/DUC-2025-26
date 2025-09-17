@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.lib;
 
 import static com.qualcomm.robotcore.eventloop.opmode.OpMode.blackboard;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
+
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.arcrobotics.ftclib.hardware.motors.CRServo;
@@ -188,29 +190,24 @@ public class Hardware {
         }*/
     }
 
-    public static class Shooter {
-        public double yaw = 0;
-        public double pitch = 0;
-        public double rots = 0;
-        public CRServo yawServo;
+    public static class crAxonServo {
+        CRServo axonServo;
+        AnalogInput axonServoEncoder;
         private double yawServoLastRecorded;
-        public AnalogInput yawServerEncoder;
         double yawServoRotationServo;
         double yawServoDirection = 1;
         private double delta = 0;
         private boolean hasRotBeenAdded = false;
-        public Shooter(CRServo myYawServo, AnalogInput myYawServoEncoder) {
-            yawServo = myYawServo;
-            this.yawServerEncoder = myYawServoEncoder;
-        }
-
-        public double[] showTelemetryData() {
-            return new double[] {yawServoRotationServo, getTotalYawEncoder(), delta, rots};
+        public double rots = 0;
+        public double totalAngle;
+        public crAxonServo(CRServo myYawServo, AnalogInput myYawServoEncoder) {
+            axonServo = myYawServo;
+            axonServoEncoder = myYawServoEncoder;
         }
 
         public void update() {
             yawServoLastRecorded = yawServoRotationServo;
-            yawServoRotationServo = (this.yawServerEncoder.getVoltage() / 3.3);
+            yawServoRotationServo = (axonServoEncoder.getVoltage() / 3.3);
             delta = yawServoRotationServo - yawServoLastRecorded;
             if (yawServoDirection < 0) {
                 delta=delta*-1;
@@ -225,25 +222,31 @@ public class Hardware {
             } else {
                 hasRotBeenAdded = false;
             }
+
+            totalAngle = getTotalYawEncoder();
         }
 
         public double getTotalYawEncoder() {
             return (rots * 360) + (yawServoRotationServo * 360);
         }
+
         public void runToEncoderPosition(double runTo) {
-            double encoderPos = getTotalYawEncoder();
-            if (encoderPos - runTo < 0) {
+            if (totalAngle - runTo < 0) {
                 yawServoDirection = 1;
                 startRotation();
-                while (encoderPos - runTo < 0) { //replace later lol
-                    encoderPos = getTotalYawEncoder();
+                while (totalAngle - runTo < 0) { //replace later lol
+                    totalAngle = getTotalYawEncoder();
+                    telemetry.addData("distance", totalAngle - runTo);
+                    telemetry.update();
                     update();
                 }
-            } else if (encoderPos - runTo > 0) {
+            } else if (totalAngle - runTo > 0) {
                 yawServoDirection = -1;
                 startRotation();
-                while (encoderPos - runTo > 0) {
-                    encoderPos = getTotalYawEncoder();
+                while (totalAngle - runTo > 0) {
+                    totalAngle = getTotalYawEncoder();
+                    telemetry.addData("distance", totalAngle - runTo);
+                    telemetry.update();
                     update();
                 }
             }
@@ -253,7 +256,24 @@ public class Hardware {
         }
 
         public void startRotation() {
-            yawServo.set(yawServoDirection);
+            axonServo.set(yawServoDirection);
+        }
+
+        public double[] showTelemetryData() {
+            return new double[]{yawServoRotationServo, totalAngle, delta, rots};
+        }
+
+
+    }
+
+    public static class Shooter {
+        public double yaw = 0;
+        public double pitch = 0;
+        public double rots = 0;
+        public crAxonServo yawServo;
+
+        public Shooter(CRServo myYawServo, AnalogInput myYawServoEncoder) {
+            yawServo = new crAxonServo(myYawServo, myYawServoEncoder);
         }
 
         void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
