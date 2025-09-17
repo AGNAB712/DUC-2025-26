@@ -1,17 +1,13 @@
 package org.firstinspires.ftc.teamcode.lib;
 
 import static com.qualcomm.robotcore.eventloop.opmode.OpMode.blackboard;
-import static org.firstinspires.ftc.robotcontroller.external.samples.ConceptBlackboard.TIMES_STARTED_KEY;
 
-import android.graphics.Color;
-import android.util.Size;
-
-import com.arcrobotics.ftclib.hardware.SensorColor;
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.arcrobotics.ftclib.hardware.motors.CRServo;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -27,7 +23,8 @@ public class Hardware {
     //public Intake intake1 = new Intake();
     //public Intake intake2 = new Intake();
     public static IntakeSensor csensor1;
-    public static Sorter sorter;
+    public Sorter sorter;
+    public Shooter shooter;
     public static List<ArtifactType> sequence = new ArrayList<>();
     public enum ArtifactType {
         GREEN,
@@ -57,6 +54,8 @@ public class Hardware {
 
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 360));
         csensor1 = new IntakeSensor(hwMap.get(WebcamName.class, "Webcam 1"));
+
+        shooter = new Shooter(new CRServo(hwMap, "yaw1"), hwMap.get(AnalogInput.class, "yaw1_encoder"));
 
 
 
@@ -192,8 +191,69 @@ public class Hardware {
     public static class Shooter {
         public double yaw = 0;
         public double pitch = 0;
-        public Shooter() {
+        public double rots = 0;
+        public CRServo yawServo;
+        private double yawServoLastRecorded;
+        public AnalogInput yawServerEncoder;
+        double yawServoRotationServo;
+        double yawServoDirection = 1;
+        private double delta = 0;
+        private boolean hasRotBeenAdded = false;
+        public Shooter(CRServo myYawServo, AnalogInput myYawServoEncoder) {
+            yawServo = myYawServo;
+            this.yawServerEncoder = myYawServoEncoder;
+        }
 
+        public double[] showTelemetryData() {
+            return new double[] {yawServoRotationServo, getTotalYawEncoder(), delta, rots};
+        }
+
+        public void update() {
+            yawServoLastRecorded = yawServoRotationServo;
+            yawServoRotationServo = (this.yawServerEncoder.getVoltage() / 3.3);
+            delta = yawServoRotationServo - yawServoLastRecorded;
+            if (yawServoDirection < 0) {
+                delta=delta*-1;
+            }
+            if (delta > 0 && Math.abs(delta) >0.01 && !hasRotBeenAdded) {
+                if (yawServoDirection > 0) {
+                    rots++;
+                } else {
+                    rots--;
+                }
+                hasRotBeenAdded = true;
+            } else {
+                hasRotBeenAdded = false;
+            }
+        }
+
+        public double getTotalYawEncoder() {
+            return (rots * 360) + (yawServoRotationServo * 360);
+        }
+        public void runToEncoderPosition(double runTo) {
+            double encoderPos = getTotalYawEncoder();
+            if (encoderPos - runTo < 0) {
+                yawServoDirection = 1;
+                startRotation();
+                while (encoderPos - runTo < 0) { //replace later lol
+                    encoderPos = getTotalYawEncoder();
+                    update();
+                }
+            } else if (encoderPos - runTo > 0) {
+                yawServoDirection = -1;
+                startRotation();
+                while (encoderPos - runTo > 0) {
+                    encoderPos = getTotalYawEncoder();
+                    update();
+                }
+            }
+
+            yawServoDirection = 0;
+            startRotation();
+        }
+
+        public void startRotation() {
+            yawServo.set(yawServoDirection);
         }
 
         void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {

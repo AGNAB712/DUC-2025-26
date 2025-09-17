@@ -74,8 +74,10 @@ public class Drive extends OpMode {
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.RIGHT_BUMPER)) {
             if (robot.getCurrentTeam() == Hardware.Teams.RED) {
                 robot.setTeam(Hardware.Teams.BLUE);
+                robot.shooter.runToEncoderPosition(720);
             } else {
                 robot.setTeam(Hardware.Teams.RED);
+                robot.shooter.runToEncoderPosition(360);
             }
         }
 
@@ -91,6 +93,11 @@ public class Drive extends OpMode {
         telemetryM.debug("current sequence:" + robot.getCurrentArtifacts());
         telemetryM.debug("velocity x:" + follower.getVelocity().getXComponent());
         telemetryM.debug("velocity y:" + follower.getVelocity().getYComponent());
+        robot.shooter.update();
+        telemetryM.debug("cool:" + robot.shooter.showTelemetryData()[0]);
+        telemetryM.debug("cool:" + robot.shooter.showTelemetryData()[1]);
+        telemetryM.debug("cool:" + robot.shooter.showTelemetryData()[2]);
+        telemetryM.debug("cool:" + robot.shooter.showTelemetryData()[3]);
         telemetryM.update(telemetry);
 
 
