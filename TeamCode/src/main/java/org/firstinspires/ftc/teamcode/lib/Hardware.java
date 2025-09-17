@@ -7,6 +7,7 @@ import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.tel
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.arcrobotics.ftclib.hardware.motors.CRServo;
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.AnalogInput;
@@ -17,8 +18,10 @@ import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifacts;
 import org.firstinspires.ftc.vision.VisionPortal;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+@Configurable
 public class Hardware {
 
     private HardwareMap hwMap;
@@ -28,6 +31,7 @@ public class Hardware {
     public Sorter sorter;
     public Shooter shooter;
     public static List<ArtifactType> sequence = new ArrayList<>();
+    public static double myP = -1;
     public enum ArtifactType {
         GREEN,
         PURPLE,
@@ -196,10 +200,13 @@ public class Hardware {
         private double yawServoLastRecorded;
         double yawServoRotationServo;
         double yawServoDirection = 1;
+        double lastDirection = 0;
         private double delta = 0;
         private boolean hasRotBeenAdded = false;
         public double rots = 0;
         public double totalAngle;
+        public double TARGET_POS = 180;
+        List<Double> distanceList = new ArrayList<>();
         public crAxonServo(CRServo myYawServo, AnalogInput myYawServoEncoder) {
             axonServo = myYawServo;
             axonServoEncoder = myYawServoEncoder;
@@ -212,11 +219,20 @@ public class Hardware {
             if (yawServoDirection < 0) {
                 delta=delta*-1;
             }
-            if (delta > 0 && Math.abs(delta) >0.01 && !hasRotBeenAdded) {
+
+            lastDirection = yawServoDirection;
+            yawServoDirection = myP * (TARGET_POS-totalAngle)/360;
+
+            if (
+                    delta > 0 && Math.abs(delta) >0.01
+                    && !hasRotBeenAdded
+                    && !(yawServoDirection > 0 && lastDirection < 0)
+                    && !(yawServoDirection < 0 && lastDirection > 0)
+            ){
                 if (yawServoDirection > 0) {
-                    rots++;
-                } else {
                     rots--;
+                } else {
+                    rots++;
                 }
                 hasRotBeenAdded = true;
             } else {
@@ -224,6 +240,11 @@ public class Hardware {
             }
 
             totalAngle = getTotalYawEncoder();
+
+            lastDirection = yawServoDirection;
+            yawServoDirection = myP * (TARGET_POS-totalAngle)/360;
+            startRotation();
+
         }
 
         public double getTotalYawEncoder() {
@@ -231,28 +252,7 @@ public class Hardware {
         }
 
         public void runToEncoderPosition(double runTo) {
-            if (totalAngle - runTo < 0) {
-                yawServoDirection = 1;
-                startRotation();
-                while (totalAngle - runTo < 0) { //replace later lol
-                    totalAngle = getTotalYawEncoder();
-                    telemetry.addData("distance", totalAngle - runTo);
-                    telemetry.update();
-                    update();
-                }
-            } else if (totalAngle - runTo > 0) {
-                yawServoDirection = -1;
-                startRotation();
-                while (totalAngle - runTo > 0) {
-                    totalAngle = getTotalYawEncoder();
-                    telemetry.addData("distance", totalAngle - runTo);
-                    telemetry.update();
-                    update();
-                }
-            }
-
-            yawServoDirection = 0;
-            startRotation();
+            TARGET_POS = runTo;
         }
 
         public void startRotation() {
@@ -260,7 +260,10 @@ public class Hardware {
         }
 
         public double[] showTelemetryData() {
-            return new double[]{yawServoRotationServo, totalAngle, delta, rots};
+            return new double[]{totalAngle, rots, TARGET_POS-totalAngle, yawServoDirection};
+        }
+        public List<Double> showOtherTelemetryData() {
+            return distanceList;
         }
 
 

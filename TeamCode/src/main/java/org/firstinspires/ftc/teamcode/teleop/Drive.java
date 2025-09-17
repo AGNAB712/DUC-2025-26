@@ -74,10 +74,10 @@ public class Drive extends OpMode {
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.RIGHT_BUMPER)) {
             if (robot.getCurrentTeam() == Hardware.Teams.RED) {
                 robot.setTeam(Hardware.Teams.BLUE);
-                robot.shooter.yawServo.runToEncoderPosition(720);
+                robot.shooter.yawServo.runToEncoderPosition(360);
             } else {
                 robot.setTeam(Hardware.Teams.RED);
-                robot.shooter.yawServo.runToEncoderPosition(360);
+                robot.shooter.yawServo.runToEncoderPosition(720);
             }
         }
 
@@ -94,10 +94,11 @@ public class Drive extends OpMode {
         telemetryM.debug("velocity x:" + follower.getVelocity().getXComponent());
         telemetryM.debug("velocity y:" + follower.getVelocity().getYComponent());
         robot.shooter.yawServo.update();
-        telemetryM.debug("cool:" + robot.shooter.yawServo.showTelemetryData()[0]);
-        telemetryM.debug("cool:" + robot.shooter.yawServo.showTelemetryData()[1]);
-        telemetryM.debug("cool:" + robot.shooter.yawServo.showTelemetryData()[2]);
-        telemetryM.debug("cool:" + robot.shooter.yawServo.showTelemetryData()[3]);
+        telemetryM.debug("total angle:" + robot.shooter.yawServo.showTelemetryData()[0]);
+        telemetryM.debug("rots:" + robot.shooter.yawServo.showTelemetryData()[1]);
+        telemetryM.debug("distance:" + robot.shooter.yawServo.showTelemetryData()[2]);
+        telemetryM.debug("direction:" + robot.shooter.yawServo.showTelemetryData()[3]);
+        telemetryM.debug("data:" + robot.shooter.yawServo.showOtherTelemetryData());
         telemetryM.update(telemetry);
 
 
