@@ -11,12 +11,18 @@ import com.bylazar.configurables.annotations.IgnoreConfigurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.lib.Hardware;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+import java.util.function.Supplier;
 
 
 @Configurable
@@ -33,6 +39,9 @@ public class Drive extends OpMode {
     GamepadEx gamepadDrive;
     GamepadEx gamepadSubsystem;
 
+    static boolean traveling = false;
+    private Supplier<PathChain> pathChain;
+
     @Override
     public void init() {
         gamepadDrive = new GamepadEx(gamepad1);
@@ -41,6 +50,12 @@ public class Drive extends OpMode {
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose());
         robot.init(hardwareMap);
+
+        pathChain = () -> follower.pathBuilder()
+                .addPath(new Path(new BezierLine(follower::getPose, new Pose(0, 0))))
+                .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), 0.8))
+                .build();
+
     }
 
     @Override
@@ -64,7 +79,9 @@ public class Drive extends OpMode {
      */
     @Override
     public void loop() {
-        follower.setTeleOpDrive(gamepadDrive.getLeftY(), -gamepadDrive.getLeftX(), -gamepadDrive.getRightX(), true);
+        if (!traveling) {
+            follower.setTeleOpDrive(gamepadDrive.getLeftY(), -gamepadDrive.getLeftX(), -gamepadDrive.getRightX(), true);
+        }
         follower.update();
 
         Hardware.ArtifactType detectedArtifact = robot.csensor1.detectColor();
@@ -75,10 +92,20 @@ public class Drive extends OpMode {
             if (robot.getCurrentTeam() == Hardware.Teams.RED) {
                 robot.setTeam(Hardware.Teams.BLUE);
                 robot.shooter.yawServo.runToEncoderPosition(360);
+                robot.sorter.green();
             } else {
                 robot.setTeam(Hardware.Teams.RED);
                 robot.shooter.yawServo.runToEncoderPosition(720);
+                robot.sorter.purple();
             }
+        }
+        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.A)) {
+            follower.followPath(pathChain.get());
+            traveling = true;
+        }
+        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.B) && traveling || !follower.isBusy()) {
+            follower.startTeleopDrive();
+            traveling = false;
         }
 
         gamepadSubsystem.readButtons();

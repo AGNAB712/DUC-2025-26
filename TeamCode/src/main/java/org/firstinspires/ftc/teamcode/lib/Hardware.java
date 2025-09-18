@@ -58,7 +58,7 @@ public class Hardware {
     public void init(HardwareMap hwMap) {
         this.hwMap = hwMap;
 
-        sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 360));
+        sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
         csensor1 = new IntakeSensor(hwMap.get(WebcamName.class, "Webcam 1"));
 
         shooter = new Shooter(new CRServo(hwMap, "yaw1"), hwMap.get(AnalogInput.class, "yaw1_encoder"));
