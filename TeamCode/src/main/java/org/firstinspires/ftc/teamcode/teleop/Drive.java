@@ -125,7 +125,6 @@ public class Drive extends OpMode {
         telemetryM.debug("rots:" + robot.shooter.yawServo.showTelemetryData()[1]);
         telemetryM.debug("distance:" + robot.shooter.yawServo.showTelemetryData()[2]);
         telemetryM.debug("direction:" + robot.shooter.yawServo.showTelemetryData()[3]);
-        telemetryM.debug("data:" + robot.shooter.yawServo.showOtherTelemetryData());
         telemetryM.update(telemetry);
 
 

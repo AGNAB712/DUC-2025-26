@@ -62,13 +62,12 @@ public class Hardware {
         csensor1 = new IntakeSensor(hwMap.get(WebcamName.class, "Webcam 1"));
 
         shooter = new Shooter(new CRServo(hwMap, "yaw1"), hwMap.get(AnalogInput.class, "yaw1_encoder"));
-
-
-
-        //intake1.init(new CRServo(hwMap, "intake1"), new SensorColor(hwMap, "color1"));
-        //intake2.init(new CRServo(hwMap, "intake2"), new SensorColor(hwMap, "color2"));
     }
 
+    //INTAKE
+    //intake class includes:
+    //the actual intake servo
+    //the camera for color + contour detection
     public static class Intake {
         public CRServo intakeContServo;
         public IntakeSensor colorSensor;
@@ -91,19 +90,84 @@ public class Hardware {
         public void stop() {setRotation(false);}
         public void start() {setRotation(true);}
     }
+
+    //SHOOTER
+    //shooter class includes:
+    //yaw servo, pitch servo
+    //math for pointing to a position
+    public static class Shooter {
+        public double yaw = 0;
+        public double pitch = 0;
+        public crAxonServo yawServo;
+        private double percentPerFullYawServoRotation = 18/80;
+
+        public Shooter(CRServo myYawServo, AnalogInput myYawServoEncoder) {
+            yawServo = new crAxonServo(myYawServo, myYawServoEncoder);
+        }
+
+        void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
+            Pose projectedPosition = new Pose(currentPosition.getX() + robotVelocity.getXComponent(), currentPosition.getY() + robotVelocity.getYComponent());
+            double theta = Math.toDegrees(
+                    Math.atan(
+                            (positionToPoint.getX() - currentPosition.getX())
+                                    /
+                                    (positionToPoint.getY() - currentPosition.getY())
+                    )
+            ) - robotHeading;
+            updateYaw(theta);
+        }
+
+        double yawDegreesToYawTicks(double yawDegrees) {
+            double ticksPerFullGearRotation = (360 / percentPerFullYawServoRotation);
+            //ppfysr is the gear ratio (ie 18 tooth gear into 80 tooth gear)
+            //this ends up being 1600 but i can change it easy if the gear ratios change
+
+            return (yawDegrees/360.0 * ticksPerFullGearRotation);
+        }
+
+
+        void updateYaw(double yawToPoint) {
+            yawServo.runToEncoderPosition(yawDegreesToYawTicks(yawToPoint));
+            yaw = yawToPoint;
+        }
+    }
+
+    //SORTER
+    //sorter class includes:
+    //the sorter servo
     public static class Sorter {
         public ServoEx sorterServo;
-        public double greenPosition = 45;
-        public double purplePosition = -45;
+        public double greenPosition = 135;
+        public double purplePosition = 45;
         public double neutralPosition = 0;
+        private int noneCount = 0;
+        private final int noneThreshold = 15;
+        public ArtifactType currentColor = ArtifactType.NONE;
 
         public Sorter(ServoEx myServo) {
             this.sorterServo = myServo;
         }
-        public void updateServo(ArtifactType type) {
-            if (type == ArtifactType.GREEN) {
+        public void updateServo(ArtifactType detectedColor) {
+            if (detectedColor != ArtifactType.NONE) {
+                noneCount = 0;
+
+                // only add when coming from "none" to a color
+                if (detectedColor == ArtifactType.NONE) {
+                    currentColor = detectedColor;
+                    sequence.add(currentColor);
+                } else {
+                    currentColor = detectedColor;
+                }
+            } else {
+                noneCount++;
+                if (noneCount >= noneThreshold) {
+                    currentColor = ArtifactType.NONE;
+                }
+            }
+
+            if (currentColor == ArtifactType.GREEN) {
                 this.green();
-            } else if (type == ArtifactType.PURPLE) {
+            } else if (currentColor == ArtifactType.PURPLE) {
                 this.purple();
             } else {
                 this.neutral();
@@ -113,6 +177,10 @@ public class Hardware {
         public void purple() {this.sorterServo.turnToAngle(purplePosition);}
         public void neutral() {this.sorterServo.turnToAngle(neutralPosition);}
     }
+
+    //INTAKE SENSOR
+    //intake sensor class includes:
+    //the webcam and processor for color + contour detection
     public static class IntakeSensor {
         private static VisionPortal visionPortal;
         private static ducProcessorArtifacts processor;
@@ -126,10 +194,6 @@ public class Hardware {
                     .setCamera(webcam)
                     .addProcessor(this.processor)
                     .build();;
-        }
-
-        public double[] contourAmount() {
-            return (new double[] {this.processor.getContourGreen(), this.processor.getContourPurple()});
         }
         public ArtifactType detectColor() {
             double greenContourAmount = this.processor.getContourGreen();
@@ -194,6 +258,8 @@ public class Hardware {
         }*/
     }
 
+    //CRAXONSERVO
+    //qol class to convert a crservo to use its corresponding voltage meter as a tick measurement
     public static class crAxonServo {
         CRServo axonServo;
         AnalogInput axonServoEncoder;
@@ -262,37 +328,8 @@ public class Hardware {
         public double[] showTelemetryData() {
             return new double[]{totalAngle, rots, TARGET_POS-totalAngle, yawServoDirection};
         }
-        public List<Double> showOtherTelemetryData() {
-            return distanceList;
-        }
-
 
     }
 
-    public static class Shooter {
-        public double yaw = 0;
-        public double pitch = 0;
-        public double rots = 0;
-        public crAxonServo yawServo;
 
-        public Shooter(CRServo myYawServo, AnalogInput myYawServoEncoder) {
-            yawServo = new crAxonServo(myYawServo, myYawServoEncoder);
-        }
-
-        void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
-            Pose projectedPosition = new Pose(currentPosition.getX() + robotVelocity.getXComponent(), currentPosition.getY() + robotVelocity.getYComponent());
-            double theta = Math.toDegrees(
-                    Math.atan(
-                            (positionToPoint.getX() - currentPosition.getX())
-                            /
-                            (positionToPoint.getY() - currentPosition.getY())
-                    )
-            ) - robotHeading;
-            updateYaw(theta);
-        }
-        void updateYaw(double yawToPoint) {
-            //add servo logic here later
-            yaw = yawToPoint;
-        }
-    }
 }
