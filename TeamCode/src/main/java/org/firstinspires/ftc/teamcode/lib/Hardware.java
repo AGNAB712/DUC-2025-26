@@ -7,6 +7,8 @@ import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.tel
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.arcrobotics.ftclib.hardware.motors.CRServo;
+import com.arcrobotics.ftclib.hardware.motors.Motor;
+import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
@@ -61,7 +63,7 @@ public class Hardware {
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
         csensor1 = new IntakeSensor(hwMap.get(WebcamName.class, "Webcam 1"));
 
-        shooter = new Shooter(new CRServo(hwMap, "yaw1"), hwMap.get(AnalogInput.class, "yaw1_encoder"));
+        shooter = new Shooter(new CRServo(hwMap, "yaw1"), hwMap.get(AnalogInput.class, "yaw1_encoder"), new SimpleServo(hwMap, "pitch1", 0, 360), new MotorEx(hwMap, "launcherOne"));
     }
 
     //INTAKE
@@ -99,10 +101,14 @@ public class Hardware {
         public double yaw = 0;
         public double pitch = 0;
         public crAxonServo yawServo;
+        public ServoEx pitchServo;
+        public MotorEx launcherMotor;
         private double percentPerFullYawServoRotation = 18/80;
 
-        public Shooter(CRServo myYawServo, AnalogInput myYawServoEncoder) {
+        public Shooter(CRServo myYawServo, AnalogInput myYawServoEncoder, ServoEx myPitchServo, MotorEx myLauncherMotor) {
             yawServo = new crAxonServo(myYawServo, myYawServoEncoder);
+            pitchServo = myPitchServo;
+            launcherMotor = myLauncherMotor;
         }
 
         void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
@@ -125,10 +131,18 @@ public class Hardware {
             return (yawDegrees/360.0 * ticksPerFullGearRotation);
         }
 
+        public void setLauncherPower(double power) {
+            launcherMotor.set(power);
+        }
+
 
         void updateYaw(double yawToPoint) {
             yawServo.runToEncoderPosition(yawDegreesToYawTicks(yawToPoint));
             yaw = yawToPoint;
+        }
+        public void updatePitch(double pitchToPoint) {
+            pitchServo.turnToAngle(pitchToPoint);
+            pitch = pitchToPoint;
         }
     }
 

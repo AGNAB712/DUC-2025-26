@@ -100,12 +100,14 @@ public class Drive extends OpMode {
             }
         }
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.A)) {
-            follower.followPath(pathChain.get());
-            traveling = true;
+            //follower.followPath(pathChain.get());
+            //traveling = true;
+            robot.shooter.setLauncherPower(0);
         }
-        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.B) && traveling || !follower.isBusy()) {
-            follower.startTeleopDrive();
-            traveling = false;
+        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.B)/* && traveling || !follower.isBusy()*/) {
+            //follower.startTeleopDrive();
+            //traveling = false;
+            robot.shooter.setLauncherPower(1);
         }
 
         gamepadSubsystem.readButtons();
