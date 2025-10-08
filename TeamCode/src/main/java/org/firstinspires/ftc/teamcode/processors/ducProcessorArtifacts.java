@@ -57,7 +57,7 @@ public class ducProcessorArtifacts implements VisionProcessor {
         camWidth = width;
         int mainRectHeight = 80;
 
-        mainRect = new Rect(0, (height/2)-(mainRectHeight/2), width, mainRectHeight);
+        mainRect = new Rect(0, 0, width, height);
     }
 
     @Override

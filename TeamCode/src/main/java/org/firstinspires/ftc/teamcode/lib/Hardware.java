@@ -2,12 +2,9 @@ package org.firstinspires.ftc.teamcode.lib;
 
 import static com.qualcomm.robotcore.eventloop.opmode.OpMode.blackboard;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
-
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.arcrobotics.ftclib.hardware.motors.CRServo;
-import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
@@ -20,7 +17,6 @@ import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifacts;
 import org.firstinspires.ftc.vision.VisionPortal;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Configurable
@@ -29,11 +25,10 @@ public class Hardware {
     private HardwareMap hwMap;
     //public Intake intake1 = new Intake();
     //public Intake intake2 = new Intake();
-    public static IntakeSensor csensor1;
     public Sorter sorter;
     public Shooter shooter;
+    public Intake intakeFront;
     public static List<ArtifactType> sequence = new ArrayList<>();
-    public static double myP = -1;
     public enum ArtifactType {
         GREEN,
         PURPLE,
@@ -43,27 +38,26 @@ public class Hardware {
         RED,
         BLUE
     }
-    public static final String TEAM_KEY = "Team";
-    Object team = blackboard.getOrDefault(TEAM_KEY, Teams.RED);
+
+    public BlackboardObject teamBlackboard = new BlackboardObject("Team");
+    public BlackboardObject sequenceBlackboard = new BlackboardObject("Artifact");
 
     public List<ArtifactType> getCurrentArtifacts() {
         return sequence;
     }
-    public Object getCurrentTeam() {
-        return team;
-    }
-    public void setTeam(Teams newTeam) {
-        blackboard.put(TEAM_KEY, newTeam);
-        team = newTeam;
-    }
-
     public void init(HardwareMap hwMap) {
         this.hwMap = hwMap;
 
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
-        csensor1 = new IntakeSensor(hwMap.get(WebcamName.class, "Webcam 1"));
 
-        shooter = new Shooter(new CRServo(hwMap, "yaw1"), hwMap.get(AnalogInput.class, "yaw1_encoder"), new SimpleServo(hwMap, "pitch1", 0, 360), new MotorEx(hwMap, "launcherOne"));
+        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"));
+
+        shooter = new Shooter( //yaw, yaw encoder, pitch, launcher motor
+                new CRServo(hwMap, "yaw1"),
+                hwMap.get(AnalogInput.class, "yaw1_encoder"),
+                new SimpleServo(hwMap, "pitch1", 0, 360),
+                new MotorEx(hwMap, "launcherOne")
+        );
     }
 
     //INTAKE
@@ -74,9 +68,10 @@ public class Hardware {
         public CRServo intakeContServo;
         public IntakeSensor colorSensor;
         public boolean isRotating;
-        public void init(CRServo myServo, WebcamName webcam) {
+        public Intake(CRServo myServo, WebcamName webcam) {
             this.intakeContServo = myServo;
             this.isRotating = false;
+            intakeContServo.setInverted(true);
             this.stop();
             this.colorSensor = new IntakeSensor(webcam);
         }
@@ -151,9 +146,9 @@ public class Hardware {
     //the sorter servo
     public static class Sorter {
         public ServoEx sorterServo;
-        public double greenPosition = 135;
-        public double purplePosition = 45;
-        public double neutralPosition = 0;
+        public double greenPosition = 60;
+        public double purplePosition = 110;
+        public double neutralPosition = 90;
         private int noneCount = 0;
         private final int noneThreshold = 15;
         public ArtifactType currentColor = ArtifactType.NONE;
@@ -196,7 +191,6 @@ public class Hardware {
     //intake sensor class includes:
     //the webcam and processor for color + contour detection
     public static class IntakeSensor {
-        private static VisionPortal visionPortal;
         private static ducProcessorArtifacts processor;
         public ArtifactType currentColor = ArtifactType.NONE;
         private int noneCount = 0;
@@ -204,10 +198,11 @@ public class Hardware {
 
         public IntakeSensor(WebcamName webcam) {
             this.processor = new ducProcessorArtifacts();
-            this.visionPortal = visionPortal = new VisionPortal.Builder()
+            VisionPortal visionPortal = new VisionPortal.Builder()
                     .setCamera(webcam)
                     .addProcessor(this.processor)
-                    .build();;
+                    .build();
+            ;
         }
         public ArtifactType detectColor() {
             double greenContourAmount = this.processor.getContourGreen();
@@ -242,34 +237,6 @@ public class Hardware {
                 }
             }
         }
-            /*float[] hsvValues = getHSV();
-            int greenMatch = 0;
-            int purpleMatch = 0;
-            double[] greenThresholdHSVBottom = {80, 0.4, 0.014};
-            double[] greenThresholdHSVTop = {160, 0.75, 0.024};
-
-            double[] purpleThresholdHSVBottom = {30, 0.5, 0.019};
-            double[] purpleThresholdHSVTop = {60, 0.75, 0.025};
-
-            for (int i = 0; i < greenThresholdsHSV.length; i++) {
-                if (greenThresholdHSVBottom[i] <= hsvValues[i] && hsvValues[i] <= greenThresholdHSVTop[i]) {
-                    greenMatch++;
-                }
-            }
-            for (int i = 0; i < purpleThresholdsHSV.length; i++) {
-                if (purpleThresholdHSVBottom[i] <= hsvValues[i] && hsvValues[i] <= purpleThresholdHSVTop[i]) {
-                    purpleMatch++;
-                }
-            }
-
-            if (greenMatch >= 2) {
-                return ArtifactType.GREEN;
-            } else if (purpleMatch >= 2) {
-                return ArtifactType.PURPLE;
-            } else {
-                return ArtifactType.NONE;
-            }
-        }*/
     }
 
     //CRAXONSERVO
@@ -301,7 +268,7 @@ public class Hardware {
             }
 
             lastDirection = yawServoDirection;
-            yawServoDirection = myP * (TARGET_POS-totalAngle)/360;
+            yawServoDirection = -1 * (TARGET_POS-totalAngle)/360;
 
             if (
                     delta > 0 && Math.abs(delta) >0.01
@@ -322,7 +289,7 @@ public class Hardware {
             totalAngle = getTotalYawEncoder();
 
             lastDirection = yawServoDirection;
-            yawServoDirection = myP * (TARGET_POS-totalAngle)/360;
+            yawServoDirection = -1 * (TARGET_POS-totalAngle)/360;
             startRotation();
 
         }
@@ -343,6 +310,23 @@ public class Hardware {
             return new double[]{totalAngle, rots, TARGET_POS-totalAngle, yawServoDirection};
         }
 
+    }
+
+    public static class BlackboardObject {
+        public static String KEY;
+        public Object myObject;
+        public BlackboardObject(String myKey) {
+            KEY = myKey;
+        }
+
+        public Object get() {
+            myObject = blackboard.getOrDefault(KEY, null);
+            return myObject;
+        }
+        public void set(Object newThing) {
+            blackboard.put(KEY, newThing);
+            myObject = newThing;
+        }
     }
 
 

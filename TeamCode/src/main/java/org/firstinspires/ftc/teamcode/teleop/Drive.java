@@ -84,19 +84,21 @@ public class Drive extends OpMode {
         }
         follower.update();
 
-        Hardware.ArtifactType detectedArtifact = robot.csensor1.detectColor();
-        robot.csensor1.trackColor(detectedArtifact);
+        Hardware.ArtifactType detectedArtifact = robot.intakeFront.colorSensor.detectColor();
+        robot.intakeFront.colorSensor.trackColor(detectedArtifact);
         robot.sorter.updateServo(detectedArtifact);
 
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.RIGHT_BUMPER)) {
-            if (robot.getCurrentTeam() == Hardware.Teams.RED) {
-                robot.setTeam(Hardware.Teams.BLUE);
+            if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
+                robot.teamBlackboard.set(Hardware.Teams.BLUE);
                 robot.shooter.yawServo.runToEncoderPosition(360);
-                robot.sorter.green();
+                robot.intakeFront.start();
+                //robot.sorter.green();
             } else {
-                robot.setTeam(Hardware.Teams.RED);
+                robot.teamBlackboard.set(Hardware.Teams.RED);
                 robot.shooter.yawServo.runToEncoderPosition(720);
-                robot.sorter.purple();
+                robot.intakeFront.stop();
+                //robot.sorter.purple();
             }
         }
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.A)) {
@@ -113,7 +115,7 @@ public class Drive extends OpMode {
         gamepadSubsystem.readButtons();
         gamepadDrive.readButtons();
 
-        telemetryM.debug("team:" + robot.getCurrentTeam());
+        telemetryM.debug("team:" + robot.teamBlackboard.get());
         telemetryM.debug("x:" + follower.getPose().getX());
         telemetryM.debug("y:" + follower.getPose().getY());
         telemetryM.debug("heading:" + follower.getPose().getHeading());
