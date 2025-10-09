@@ -27,6 +27,7 @@ public class Hardware {
     //public Intake intake2 = new Intake();
     public Sorter sorter;
     public Shooter shooter;
+    public Chute chute;
     public Intake intakeFront;
     public static List<ArtifactType> sequence = new ArrayList<>();
     public enum ArtifactType {
@@ -58,6 +59,19 @@ public class Hardware {
                 new SimpleServo(hwMap, "pitch1", 0, 360),
                 new MotorEx(hwMap, "launcherOne")
         );
+
+        chute = new Chute(new CRServo(hwMap, "yaw1"));
+    }
+
+    public static class Chute {
+        public CRServo spinny;
+        public Chute(CRServo mySpinny) {
+            spinny = mySpinny;
+        }
+
+        public void setRotation(double speed) {
+            spinny.set(speed);
+        }
     }
 
     //INTAKE
@@ -104,6 +118,7 @@ public class Hardware {
             yawServo = new crAxonServo(myYawServo, myYawServoEncoder);
             pitchServo = myPitchServo;
             launcherMotor = myLauncherMotor;
+            launcherMotor.setInverted(true);
         }
 
         void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
