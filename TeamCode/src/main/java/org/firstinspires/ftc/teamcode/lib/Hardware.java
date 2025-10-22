@@ -49,18 +49,18 @@ public class Hardware {
     public void init(HardwareMap hwMap) {
         this.hwMap = hwMap;
 
-        sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
+        //sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
 
-        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"));
+        //intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"));
 
-        shooter = new Shooter( //yaw, yaw encoder, pitch, launcher motor
+        /*shooter = new Shooter( //yaw, yaw encoder, pitch, launcher motor
                 new CRServo(hwMap, "yaw1"),
                 hwMap.get(AnalogInput.class, "yaw1_encoder"),
                 new SimpleServo(hwMap, "pitch1", 0, 360),
                 new MotorEx(hwMap, "launcherOne")
-        );
+        );*/
 
-        chute = new Chute(new CRServo(hwMap, "yaw1"));
+        //chute = new Chute(new CRServo(hwMap, "spinny"));
     }
 
     public static class Chute {
@@ -343,6 +343,8 @@ public class Hardware {
             myObject = newThing;
         }
     }
+
+
 
 
 }

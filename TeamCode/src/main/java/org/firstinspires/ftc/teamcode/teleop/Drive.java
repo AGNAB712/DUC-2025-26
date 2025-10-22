@@ -4,12 +4,15 @@ import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrent;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrentAndHistory;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
 
+import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.configurables.annotations.IgnoreConfigurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
+import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.control.PIDFController;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -40,6 +43,9 @@ public class Drive extends OpMode {
     GamepadEx gamepadSubsystem;
 
     static boolean traveling = false;
+    static boolean headingLock = false;
+    double targetHeading = Math.toRadians(90);
+    PIDFController headingPIDController = new PIDFController(new PIDFCoefficients(0, 0, 0, 0));
     private Supplier<PathChain> pathChain;
 
     @Override
@@ -53,7 +59,7 @@ public class Drive extends OpMode {
 
         pathChain = () -> follower.pathBuilder()
                 .addPath(new Path(new BezierLine(follower::getPose, new Pose(0, 0))))
-                .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), 0.8))
+                .setLinearHeadingInterpolation(follower.getHeading(), Math.toRadians(45))
                 .build();
 
     }
@@ -80,13 +86,49 @@ public class Drive extends OpMode {
     @Override
     public void loop() {
         if (!traveling) {
-            follower.setTeleOpDrive(gamepadDrive.getLeftY(), -gamepadDrive.getLeftX(), -gamepadDrive.getRightX(), true);
+            if (headingLock) {
+
+                Pose positionToPoint = new Pose(0, 0);
+                Pose currentPosition = follower.getPose();
+                targetHeading = (-1 * Math.atan(
+                        (positionToPoint.getX() - currentPosition.getX())
+                                /
+                                (positionToPoint.getY() - currentPosition.getY())
+                ));
+                if (currentPosition.getY() < 0) {
+                    targetHeading = targetHeading - (Math.PI / 2);
+                } else {
+                    targetHeading = targetHeading + (Math.PI / 2);
+                }
+
+                double headingError = targetHeading - follower.getHeading();
+                headingPIDController.setCoefficients(follower.constants.coefficientsHeadingPIDF);
+                headingPIDController.updateError(headingError);
+                telemetryM.addData("heading error", headingError);
+
+                follower.setTeleOpDrive(
+                        gamepadDrive.getLeftY(),
+                        -gamepadDrive.getLeftX(),
+                        headingPIDController.run(),
+                        false
+                );
+            } else {
+                follower.setTeleOpDrive(
+                        gamepadDrive.getLeftY(),
+                        -gamepadDrive.getLeftX(),
+                        -gamepadDrive.getRightX(),
+                        false
+                );
+            }
+
+
+
         }
         follower.update();
 
-        Hardware.ArtifactType detectedArtifact = robot.intakeFront.colorSensor.detectColor();
-        robot.intakeFront.colorSensor.trackColor(detectedArtifact);
-        robot.sorter.updateServo(detectedArtifact);
+        //Hardware.ArtifactType detectedArtifact = robot.intakeFront.colorSensor.detectColor();
+        //robot.intakeFront.colorSensor.trackColor(detectedArtifact);
+        //robot.sorter.updateServo(detectedArtifact);
 
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.RIGHT_BUMPER)) {
             if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
@@ -102,14 +144,22 @@ public class Drive extends OpMode {
             }
         }
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.A)) {
+            follower.followPath(pathChain.get());
+            traveling = true;
+            //robot.shooter.setLauncherPower(0);
+        }
+        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.B) && traveling || !follower.isBusy()) {
+            follower.startTeleopDrive();
+            traveling = false;
+            //robot.shooter.setLauncherPower(1);
+        }
+        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.X)) {
+            headingLock = !headingLock;
+        }
+        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.RIGHT_BUMPER)) {
             //follower.followPath(pathChain.get());
             //traveling = true;
-            robot.shooter.setLauncherPower(0);
-        }
-        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.B)/* && traveling || !follower.isBusy()*/) {
-            //follower.startTeleopDrive();
-            //traveling = false;
-            robot.shooter.setLauncherPower(1);
+            robot.chute.setRotation(0);
         }
 
         gamepadSubsystem.readButtons();
@@ -120,15 +170,15 @@ public class Drive extends OpMode {
         telemetryM.debug("y:" + follower.getPose().getY());
         telemetryM.debug("heading:" + follower.getPose().getHeading());
         telemetryM.debug("total heading:" + follower.getTotalHeading());
-        telemetryM.debug("Color:" + detectedArtifact);
-        telemetryM.debug("current sequence:" + robot.getCurrentArtifacts());
+        //telemetryM.debug("Color:" + detectedArtifact);
+        //telemetryM.debug("current sequence:" + robot.getCurrentArtifacts());
         telemetryM.debug("velocity x:" + follower.getVelocity().getXComponent());
         telemetryM.debug("velocity y:" + follower.getVelocity().getYComponent());
-        robot.shooter.yawServo.update();
-        telemetryM.debug("total angle:" + robot.shooter.yawServo.showTelemetryData()[0]);
-        telemetryM.debug("rots:" + robot.shooter.yawServo.showTelemetryData()[1]);
-        telemetryM.debug("distance:" + robot.shooter.yawServo.showTelemetryData()[2]);
-        telemetryM.debug("direction:" + robot.shooter.yawServo.showTelemetryData()[3]);
+        //robot.shooter.yawServo.update();
+        //telemetryM.debug("total angle:" + robot.shooter.yawServo.showTelemetryData()[0]);
+        //telemetryM.debug("rots:" + robot.shooter.yawServo.showTelemetryData()[1]);
+        //telemetryM.debug("distance:" + robot.shooter.yawServo.showTelemetryData()[2]);
+        //telemetryM.debug("direction:" + robot.shooter.yawServo.showTelemetryData()[3]);
         telemetryM.update(telemetry);
 
 
