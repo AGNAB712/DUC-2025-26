@@ -51,6 +51,7 @@ repositories {
 dependencies {
     implementation project(':FtcRobotController')
     implementation("dev.frozenmilk.sinister:Sloth:0.2.4")
-    implementation 'org.ftclib.ftclib:core:2.1.1'
+    implementation "org.solverslib:core:0.3.3" // core
+    implementation "org.solverslib:pedroPathing:0.3.3" // pedroPathing
     implementation 'org.team11260:fast-load:0.1.3'
 }

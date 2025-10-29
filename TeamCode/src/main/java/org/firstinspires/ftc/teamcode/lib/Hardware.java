@@ -2,17 +2,21 @@ package org.firstinspires.ftc.teamcode.lib;
 
 import static com.qualcomm.robotcore.eventloop.opmode.OpMode.blackboard;
 
-import com.arcrobotics.ftclib.hardware.ServoEx;
-import com.arcrobotics.ftclib.hardware.SimpleServo;
-import com.arcrobotics.ftclib.hardware.motors.CRServo;
-import com.arcrobotics.ftclib.hardware.motors.MotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.seattlesolvers.solverslib.hardware.ServoEx;
+import com.seattlesolvers.solverslib.hardware.SimpleServo;
+import com.seattlesolvers.solverslib.hardware.motors.CRServo;
+import com.seattlesolvers.solverslib.hardware.motors.Motor;
+import com.seattlesolvers.solverslib.hardware.motors.MotorEx;
 import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifacts;
 import org.firstinspires.ftc.vision.VisionPortal;
 
@@ -23,6 +27,8 @@ import java.util.List;
 public class Hardware {
 
     private HardwareMap hwMap;
+    public Follower follower;
+    public MotorEx fL, fR, rL, rR;
     //public Intake intake1 = new Intake();
     //public Intake intake2 = new Intake();
     public Sorter sorter;
@@ -46,31 +52,38 @@ public class Hardware {
     public List<ArtifactType> getCurrentArtifacts() {
         return sequence;
     }
-    public void init(HardwareMap hwMap) {
+    public Hardware(HardwareMap hwMap) {
         this.hwMap = hwMap;
 
-        //sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
+        sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
 
-        //intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"));
+        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"));
 
-        /*shooter = new Shooter( //yaw, yaw encoder, pitch, launcher motor
-                new CRServo(hwMap, "yaw1"),
-                hwMap.get(AnalogInput.class, "yaw1_encoder"),
+        shooter = new Shooter( //yaw, yaw encoder, pitch, launcher motor
                 new SimpleServo(hwMap, "pitch1", 0, 360),
                 new MotorEx(hwMap, "launcherOne")
-        );*/
+        );
 
-        //chute = new Chute(new CRServo(hwMap, "spinny"));
+        chute = new Chute(new CRServo(hwMap, "spinny"), new SimpleServo(hwMap, "lock", 0, 180));
     }
 
     public static class Chute {
         public CRServo spinny;
-        public Chute(CRServo mySpinny) {
+        public SimpleServo chuteLock;
+        public Chute(CRServo mySpinny, SimpleServo myChuteLock) {
             spinny = mySpinny;
+            chuteLock = myChuteLock;
         }
 
         public void setRotation(double speed) {
             spinny.set(speed);
+        }
+
+        public void open() {
+            chuteLock.setPosition(0.5);
+        }
+        public void close() {
+            chuteLock.setPosition(0);
         }
     }
 
@@ -107,21 +120,17 @@ public class Hardware {
     //yaw servo, pitch servo
     //math for pointing to a position
     public static class Shooter {
-        public double yaw = 0;
         public double pitch = 0;
-        public crAxonServo yawServo;
         public ServoEx pitchServo;
         public MotorEx launcherMotor;
-        private double percentPerFullYawServoRotation = 18/80;
 
-        public Shooter(CRServo myYawServo, AnalogInput myYawServoEncoder, ServoEx myPitchServo, MotorEx myLauncherMotor) {
-            yawServo = new crAxonServo(myYawServo, myYawServoEncoder);
+        public Shooter(ServoEx myPitchServo, MotorEx myLauncherMotor) {
             pitchServo = myPitchServo;
             launcherMotor = myLauncherMotor;
             launcherMotor.setInverted(true);
         }
 
-        void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
+        /*void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
             Pose projectedPosition = new Pose(currentPosition.getX() + robotVelocity.getXComponent(), currentPosition.getY() + robotVelocity.getYComponent());
             double theta = Math.toDegrees(
                     Math.atan(
@@ -131,25 +140,25 @@ public class Hardware {
                     )
             ) - robotHeading;
             updateYaw(theta);
-        }
+        }*/
 
-        double yawDegreesToYawTicks(double yawDegrees) {
+        /*double yawDegreesToYawTicks(double yawDegrees) {
             double ticksPerFullGearRotation = (360 / percentPerFullYawServoRotation);
             //ppfysr is the gear ratio (ie 18 tooth gear into 80 tooth gear)
             //this ends up being 1600 but i can change it easy if the gear ratios change
 
             return (yawDegrees/360.0 * ticksPerFullGearRotation);
-        }
+        }*/
 
         public void setLauncherPower(double power) {
             launcherMotor.set(power);
         }
 
 
-        void updateYaw(double yawToPoint) {
+        /*void updateYaw(double yawToPoint) {
             yawServo.runToEncoderPosition(yawDegreesToYawTicks(yawToPoint));
             yaw = yawToPoint;
-        }
+        }*/
         public void updatePitch(double pitchToPoint) {
             pitchServo.turnToAngle(pitchToPoint);
             pitch = pitchToPoint;
