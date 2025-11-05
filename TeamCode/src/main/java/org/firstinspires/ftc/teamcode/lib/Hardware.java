@@ -19,6 +19,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifacts;
 import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,9 +33,13 @@ public class Hardware {
     //public Intake intake1 = new Intake();
     //public Intake intake2 = new Intake();
     public Sorter sorter;
-    public Shooter shooter;
-    public Chute chute;
+    public Shooter shooterRight;
+    public Shooter shooterLeft;
+    public Chute chuteRight;
+    public Chute chuteLeft;
     public Intake intakeFront;
+    public Intake intakeBack;
+    public Lock lock;
     public static List<ArtifactType> sequence = new ArrayList<>();
     public enum ArtifactType {
         GREEN,
@@ -55,30 +60,77 @@ public class Hardware {
     public Hardware(HardwareMap hwMap) {
         this.hwMap = hwMap;
 
+        //expansion - servos
+        //0 intakeFront
+        //1 intakeBack
+        //2 rightChute
+        //3 leftChute
+        //4 pitchLeft
+        //5 pitchRight
+        //expansion - motors
+        //0 frontLeft
+        //1 backLeft
+        //2 shooterRight
+
+        //control - servos
+        //0 sorter
+        //1 lock
+        //control - motors
+        //0 frontRight
+        //1 backRight
+        //2 shooterLeft
+
+        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"), 0);
+        intakeBack = new Intake(new CRServo(hwMap, "intakeBack"), hwMap.get(WebcamName.class, "Webcam 2"), 1);
+
+        shooterRight = new Shooter(new SimpleServo(hwMap, "pitchRight", 0, 360), new MotorEx(hwMap, "shooterRight"));
+        shooterLeft = new Shooter(new SimpleServo(hwMap, "pitchLeft", 0, 360), new MotorEx(hwMap, "shooterLeft"));
+
+        chuteRight = new Chute(new CRServo(hwMap, "rightChute"));
+        chuteLeft = new Chute(new CRServo(hwMap, "leftChute"));
+
+        lock = new Lock(new SimpleServo(hwMap, "lock", 0, 180));
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
 
-        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"));
-
-        shooter = new Shooter( //yaw, yaw encoder, pitch, launcher motor
-                new SimpleServo(hwMap, "pitch1", 0, 360),
-                new MotorEx(hwMap, "launcherOne")
-        );
-
-        chute = new Chute(new CRServo(hwMap, "spinny"), new SimpleServo(hwMap, "lock", 0, 180));
+        VisionPortal visionPortal = new VisionPortal.Builder()
+                .setCamera(hwMap.get(WebcamName.class, "Webcam 3"))
+                //.addProcessor(new ducProcessorArtifacts())
+                //.setLiveViewContainerId(LiveViewContainerId)
+                .enableLiveView(false)
+                .build();
     }
 
     public static class Chute {
         public CRServo spinny;
-        public SimpleServo chuteLock;
-        public Chute(CRServo mySpinny, SimpleServo myChuteLock) {
+        public boolean isRotating = false;
+
+        public Chute(CRServo mySpinny) {
             spinny = mySpinny;
+            spinny.setInverted(true);
+        }
+
+        public void setRotation(Intake.servoPositions newPosition) {
+            if (newPosition == Intake.servoPositions.ROTATING) {
+                this.isRotating = true;
+                this.spinny.set(1);
+            } else if (newPosition == Intake.servoPositions.REVERSED) {
+                this.isRotating = true;
+                this.spinny.set(-1);
+            } else if (newPosition == Intake.servoPositions.STOPPED) {
+                this.isRotating = false;
+                this.spinny.stop();
+            }
+        }
+        public void stop() {setRotation(Intake.servoPositions.STOPPED);}
+        public void start() {setRotation(Intake.servoPositions.ROTATING);}
+        public void reverse() {setRotation(Intake.servoPositions.REVERSED);}
+    }
+
+    public static class Lock {
+        public SimpleServo chuteLock;
+        public Lock(SimpleServo myChuteLock) {
             chuteLock = myChuteLock;
         }
-
-        public void setRotation(double speed) {
-            spinny.set(speed);
-        }
-
         public void open() {
             chuteLock.setPosition(0.5);
         }
@@ -95,24 +147,32 @@ public class Hardware {
         public CRServo intakeContServo;
         public IntakeSensor colorSensor;
         public boolean isRotating;
-        public Intake(CRServo myServo, WebcamName webcam) {
+        public enum servoPositions {
+            ROTATING, STOPPED, REVERSED
+        }
+        public Intake(CRServo myServo, WebcamName webcam, int LiveViewContainerId) {
             this.intakeContServo = myServo;
             this.isRotating = false;
             intakeContServo.setInverted(true);
             this.stop();
-            this.colorSensor = new IntakeSensor(webcam);
+            this.colorSensor = new IntakeSensor(webcam, LiveViewContainerId);
         }
 
-        public void setRotation(boolean rotationSet) {
-            this.isRotating = rotationSet;
-            if (this.isRotating) {
+        public void setRotation(servoPositions newPosition) {
+            if (newPosition == servoPositions.ROTATING) {
+                this.isRotating = true;
                 this.intakeContServo.set(1);
-            } else {
+            } else if (newPosition == servoPositions.REVERSED) {
+                this.isRotating = true;
+                this.intakeContServo.set(-1);
+            } else if (newPosition == servoPositions.STOPPED) {
+                this.isRotating = false;
                 this.intakeContServo.stop();
             }
         }
-        public void stop() {setRotation(false);}
-        public void start() {setRotation(true);}
+        public void stop() {setRotation(servoPositions.STOPPED);}
+        public void start() {setRotation(servoPositions.ROTATING);}
+        public void reverse() {setRotation(servoPositions.REVERSED);}
     }
 
     //SHOOTER
@@ -153,12 +213,10 @@ public class Hardware {
         public void setLauncherPower(double power) {
             launcherMotor.set(power);
         }
+        public void setLauncherVelocity(double vel) {
+            launcherMotor.setVelocity(vel);
+        }
 
-
-        /*void updateYaw(double yawToPoint) {
-            yawServo.runToEncoderPosition(yawDegreesToYawTicks(yawToPoint));
-            yaw = yawToPoint;
-        }*/
         public void updatePitch(double pitchToPoint) {
             pitchServo.turnToAngle(pitchToPoint);
             pitch = pitchToPoint;
@@ -220,11 +278,13 @@ public class Hardware {
         private int noneCount = 0;
         private final int noneThreshold = 15;
 
-        public IntakeSensor(WebcamName webcam) {
+        public IntakeSensor(WebcamName webcam, int LiveViewContainerId) {
             this.processor = new ducProcessorArtifacts();
             VisionPortal visionPortal = new VisionPortal.Builder()
                     .setCamera(webcam)
                     .addProcessor(this.processor)
+                    //.setLiveViewContainerId(LiveViewContainerId)
+                    .enableLiveView(false)
                     .build();
             ;
         }

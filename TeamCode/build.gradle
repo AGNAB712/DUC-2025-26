@@ -19,19 +19,12 @@ buildscript {
         maven {
             url = 'https://www.matthewo.tech/maven/'
         }
-        maven {
-            url "https://repo.dairy.foundation/releases"
-        }
-    }
-    dependencies {
-        classpath "dev.frozenmilk:Load:0.2.4"
     }
 }
 
 
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
-apply plugin: 'dev.frozenmilk.sinister.sloth.load'
 
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
@@ -50,8 +43,6 @@ repositories {
 }
 dependencies {
     implementation project(':FtcRobotController')
-    implementation("dev.frozenmilk.sinister:Sloth:0.2.4")
     implementation "org.solverslib:core:0.3.3" // core
     implementation "org.solverslib:pedroPathing:0.3.3" // pedroPathing
-    implementation 'org.team11260:fast-load:0.1.3'
 }

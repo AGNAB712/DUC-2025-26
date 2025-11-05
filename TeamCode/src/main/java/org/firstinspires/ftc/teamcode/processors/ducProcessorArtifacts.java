@@ -19,10 +19,10 @@ public class ducProcessorArtifacts implements VisionProcessor {
 
     public Scalar redLower = new Scalar(82.2, 66.8, 131.8);
     public Scalar redUpper = new Scalar(134.6, 255.0, 255.0);
-    public Scalar greenLower = new Scalar(85.0, 133.2, 49.0);
+    public Scalar greenLower = new Scalar(75.0, 53.0, 49.0);
     public Scalar greenUpper = new Scalar(93.5, 255.0, 222.4);
-    public Scalar purpleLower = new Scalar(121.8, 36.8, 76.5);
-    public Scalar purpleUpper = new Scalar(179.9, 255.0, 255.0);
+    public Scalar purpleLower = new Scalar(136.0, 48.2, 70.8);
+    public Scalar purpleUpper = new Scalar(160.0, 255.0, 255.0);
 
     public Rect theFirstOne = new Rect(0, 0, 40, 40);
     public Rect theSecondOne = new Rect(0, 0, 40, 40);
@@ -72,8 +72,8 @@ public class ducProcessorArtifacts implements VisionProcessor {
             greenMat = new Mat(frameMain, mainRect);
 
             //Imgproc.cvtColor(framePurple, framePurple, Imgproc.COLOR_RGB2HSV);
-            //Core.inRange(framePurple, purpleLower, purpleUpper, framePurple);
-            purpleMat = new Mat(framePurple, mainRect);
+            //Core.inRange(frameMain, purpleLower, purpleUpper, frameMain);
+            purpleMat = new Mat(frameMain, mainRect);
 
             Imgproc.rectangle(frameMain, mainRect, new Scalar(100,0,222));
             //Imgproc.rectangle(framePurple, mainRect, new Scalar(100,0,222));
@@ -81,11 +81,6 @@ public class ducProcessorArtifacts implements VisionProcessor {
             contourAreaGreen = 0;
             //contourAreaPurple = 0;
 
-            //AREA 1
-            //detectContours(redFirst, mainRect, contours, frame, 1);
-
-            //AREA 2
-            //detectContours(greenMat, mainRect, contoursGreen, frameMain, frameMain, true);
             //detectContours(purpleMat, mainRect, contoursPurple, framePurple, frameMain, false);
         } else {
             Imgproc.cvtColor(frameGreen, hsvGreen, Imgproc.COLOR_RGB2HSV);

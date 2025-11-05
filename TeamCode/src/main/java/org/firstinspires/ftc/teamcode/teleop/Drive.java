@@ -73,18 +73,8 @@ public class Drive extends OpMode {
     }
 
     @Override
-    public void init_loop() {
-        telemetryM.debug("This will print your robot's position to telemetry while "
-                + "allowing robot control through a basic mecanum drive on gamepad 1.");
-        telemetryM.update(telemetry);
-        follower.update();
-        //drawCurrent();
-    }
-
-    @Override
     public void start() {
         follower.startTeleopDrive();
-        follower.update();
     }
 
     /**
@@ -93,7 +83,7 @@ public class Drive extends OpMode {
      */
     @Override
     public void loop() {
-        if (!traveling) {
+        /*if (!traveling) {
             if (headingLock) {
 
                 Pose positionToPoint = new Pose(0, 0);
@@ -135,12 +125,17 @@ public class Drive extends OpMode {
 
 
 
-        }
+        }*/
         follower.update();
+        follower.setTeleOpDrive(
+                -gamepad1.left_stick_y,
+                -gamepad1.left_stick_x,
+                -gamepad1.right_stick_x,
+                true // Robot Centric
+        );
 
-        //Hardware.ArtifactType detectedArtifact = robot.intakeFront.colorSensor.detectColor();
-        //robot.intakeFront.colorSensor.trackColor(detectedArtifact);
-        //robot.sorter.updateServo(detectedArtifact);
+
+
 
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.RIGHT_BUMPER)) {
             if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
@@ -162,29 +157,30 @@ public class Drive extends OpMode {
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.X)) {
             headingLock = !headingLock;
         }
-        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.DPAD_UP)) {
-            robot.chute.setRotation(-1);
-        }
-        if (gamepadDrive.wasJustPressed(GamepadKeys.Button.DPAD_DOWN)) {
-            robot.chute.setRotation(0);
-        }
+
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.DPAD_LEFT)) {
-            robot.chute.open();
+            robot.lock.open();
         }
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.DPAD_RIGHT)) {
-            robot.chute.close();
+            robot.lock.close();
         }
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.LEFT_BUMPER)) {
             robot.intakeFront.start();
+            robot.intakeBack.start();
+            robot.chuteRight.start();
+            robot.chuteLeft.start();
         }
         if (gamepadDrive.wasJustReleased(GamepadKeys.Button.LEFT_BUMPER)) {
             robot.intakeFront.stop();
+            robot.intakeBack.stop();
+            robot.chuteRight.stop();
+            robot.chuteLeft.stop();
         }
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.Y)) {
-            robot.shooter.setLauncherPower(1);
+            robot.shooterRight.updatePitch(360);
         }
         if (gamepadDrive.wasJustReleased(GamepadKeys.Button.Y)) {
-            robot.shooter.setLauncherPower(0);
+            robot.shooterRight.updatePitch(0);
         }
 
 
@@ -197,18 +193,17 @@ public class Drive extends OpMode {
         telemetryM.debug("y:" + follower.getPose().getY());
         telemetryM.debug("heading:" + follower.getPose().getHeading());
         telemetryM.debug("total heading:" + follower.getTotalHeading());
-        telemetryM.debug("Color:" + detectedArtifact);
+        //telemetryM.debug("Color:" + detectedArtifact);
         telemetryM.debug("current sequence:" + robot.getCurrentArtifacts());
         telemetryM.debug("velocity x:" + follower.getVelocity().getXComponent());
         telemetryM.debug("velocity y:" + follower.getVelocity().getYComponent());
-        telemetryM.debug("velocity y:" + robot.chute.spinny.get());
         telemetryM.debug("heading error: " + headingError);
         //robot.shooter.yawServo.update();
         //telemetryM.debug("total angle:" + robot.shooter.yawServo.showTelemetryData()[0]);
         //telemetryM.debug("rots:" + robot.shooter.yawServo.showTelemetryData()[1]);
         //telemetryM.debug("distance:" + robot.shooter.yawServo.showTelemetryData()[2]);
         //telemetryM.debug("direction:" + robot.shooter.yawServo.showTelemetryData()[3]);
-        telemetryM.update(telemetry);
+        //telemetryM.update(telemetry);
 
 
 
