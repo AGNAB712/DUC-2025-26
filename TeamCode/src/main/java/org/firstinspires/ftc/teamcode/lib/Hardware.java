@@ -65,7 +65,6 @@ public class Hardware {
         //1 intakeBack
         //2 rightChute
         //3 leftChute
-        //4 pitchLeft
         //5 pitchRight
         //expansion - motors
         //0 frontLeft
@@ -75,6 +74,7 @@ public class Hardware {
         //control - servos
         //0 sorter
         //1 lock
+        //2 pitchLeft
         //control - motors
         //0 frontRight
         //1 backRight
@@ -187,7 +187,9 @@ public class Hardware {
         public Shooter(ServoEx myPitchServo, MotorEx myLauncherMotor) {
             pitchServo = myPitchServo;
             launcherMotor = myLauncherMotor;
-            launcherMotor.setInverted(true);
+            launcherMotor.setRunMode(Motor.RunMode.VelocityControl);
+            launcherMotor.setVeloCoefficients(0.05, 0.01, 0.31);
+            //launcherMotor.setInverted(true);
         }
 
         /*void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
@@ -214,7 +216,13 @@ public class Hardware {
             launcherMotor.set(power);
         }
         public void setLauncherVelocity(double vel) {
-            launcherMotor.setVelocity(vel);
+            launcherMotor.set(vel);
+        }
+        public double getLauncherVelocity() {
+            return launcherMotor.getVelocity();
+        }
+        public void stop() {
+            launcherMotor.stopMotor();
         }
 
         public void updatePitch(double pitchToPoint) {

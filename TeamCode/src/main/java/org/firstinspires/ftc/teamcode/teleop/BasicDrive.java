@@ -30,6 +30,8 @@ public class BasicDrive extends OpMode {
     private boolean slowMode = false;
     static boolean headingLock = false;
     double targetHeading = Math.toRadians(90);
+    double targetVelocity = 1000;
+    double targetPitch = 0;
     PIDFController headingPIDController = new PIDFController(new PIDFCoefficients(0, 0, 0, 0));
     double headingError = 0;
     Hardware.Teams team;
@@ -162,27 +164,47 @@ public class BasicDrive extends OpMode {
             automatedDrive = false;
         }
 
-        if (gamepad1.xWasPressed()) {
-            headingLock = !headingLock;
-        }
+        //if (gamepad1.xWasPressed()) {
+        //    headingLock = !headingLock;
+        //}
 
         //Slow Mode
         if (gamepad1.rightBumperWasPressed()) {
             slowMode = !slowMode;
         }
 
-        //Optional way to change slow mode strength
-        if (gamepad1.xWasPressed()) {
-            slowModeMultiplier += 0.25;
+        if (gamepad1.dpadLeftWasPressed()) {
+            robot.shooterLeft.setLauncherVelocity(targetVelocity);
+        }
+        if (gamepad1.dpadRightWasPressed()) {
+            robot.shooterLeft.stop();
+        }
+        if (gamepad1.dpadUpWasPressed()) {
+            targetVelocity = targetVelocity + 50;
+        }
+        if (gamepad1.dpadDownWasPressed()) {
+            targetVelocity = targetVelocity - 50;
+        }
+        if (gamepad1.x) {
+            if (targetPitch < 360) {
+                targetPitch = targetPitch + 5;
+            }
+            robot.shooterLeft.updatePitch(targetPitch);
+        }
+        if (gamepad1.y) {
+            if (targetPitch > 0) {
+                targetPitch = targetPitch - 5;
+            }
+            robot.shooterLeft.updatePitch(targetPitch);
         }
 
-        //Optional way to change slow mode strength
-        if (gamepad2.yWasPressed()) {
-            slowModeMultiplier -= 0.25;
-        }
 
         telemetryM.debug("position", follower.getPose());
         telemetryM.debug("velocity", follower.getVelocity());
+        telemetryM.debug("target velocity shooter", targetVelocity);
+        telemetryM.debug("velocity shooter", robot.shooterLeft.getLauncherVelocity());
+        telemetryM.debug("corrected velocity shooter", robot.shooterLeft.launcherMotor.getCorrectedVelocity());
+        telemetryM.debug("pitch", targetPitch);
         telemetryM.debug("automatedDrive", automatedDrive);
     }
 }
