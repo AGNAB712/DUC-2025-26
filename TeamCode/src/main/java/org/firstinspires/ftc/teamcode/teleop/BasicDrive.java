@@ -41,7 +41,12 @@ public class BasicDrive extends OpMode {
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
+        if (robot.endPositionBlackboard.get() != null) {
+            Object endPosFromAuto = robot.endPositionBlackboard.get();
+            follower.setStartingPose((Pose) endPosFromAuto);
+        } else {
+            follower.setStartingPose(new Pose());
+        }
         follower.update();
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
         robot = new Hardware(hardwareMap);
@@ -140,6 +145,8 @@ public class BasicDrive extends OpMode {
                 robot.sorter.updateServo(Hardware.ArtifactType.GREEN);
             }
 
+        } else {
+            robot.sorter.updateServo(Hardware.ArtifactType.NONE);
         }
         if (gamepad1.rightBumperWasPressed()) {
             if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
@@ -151,6 +158,10 @@ public class BasicDrive extends OpMode {
                 team = Hardware.Teams.RED;
                 gamepad1.rumble(50);
             }
+        }
+
+        if (gamepad1.yWasPressed()) {
+            follower.setPose(follower.getPose().withHeading(0));
         }
 
 
@@ -171,24 +182,6 @@ public class BasicDrive extends OpMode {
         //    headingLock = !headingLock;
         //}
 
-        //Slow Mode
-        if (gamepad1.rightBumperWasPressed()) {
-            slowMode = !slowMode;
-        }
-
-        if (gamepad1.right_trigger > 0 && gamepad1.left_trigger > 0) {
-            robot.shooterRight.setLauncherVelocity(targetVelocity);
-            robot.shooterLeft.setLauncherVelocity(targetVelocity);
-            if (robot.shooterRight.isLauncherWithinVelocity() && robot.shooterLeft.isLauncherWithinVelocity()) {
-                robot.lock.open();
-                robot.chuteRight.start();
-                robot.chuteLeft.start();
-            } else {
-                robot.lock.close();
-                robot.chuteRight.start();
-                robot.chuteLeft.start();
-            }
-        } else {
 
             if (gamepad1.right_trigger > 0) {
                 robot.shooterRight.setLauncherVelocity(targetVelocity);
@@ -228,30 +221,24 @@ public class BasicDrive extends OpMode {
                 }
             }
 
-        }
-
-        if (gamepad1.dpadLeftWasPressed()) {
-            robot.shooterRight.setLauncherVelocity(targetVelocity);
-        }
-        if (gamepad1.dpadRightWasPressed()) {
-            robot.shooterRight.stop();
-        }
         robot.shooterRight.keepLauncherAtVelocity();
         robot.shooterLeft.keepLauncherAtVelocity();
         if (gamepad1.dpad_up) {
             robot.lock.open();
         }
-        if (gamepad1.x) {
+        if (gamepad1.dpad_right) {
             if (targetPitch < 200) {
                 targetPitch = targetPitch + 5;
             }
             robot.shooterRight.updatePitch(targetPitch);
+            robot.shooterLeft.updatePitch(targetPitch);
         }
-        if (gamepad1.y) {
+        if (gamepad1.dpad_left) {
             if (targetPitch > 0) {
                 targetPitch = targetPitch - 5;
             }
             robot.shooterRight.updatePitch(targetPitch);
+            robot.shooterLeft.updatePitch(targetPitch);
         }
 
 
@@ -268,5 +255,10 @@ public class BasicDrive extends OpMode {
         telemetryM.debug("detected front", robot.intakeFront.colorSensor.getCamera());
         telemetryM.debug("detected back", robot.intakeBack.colorSensor.getCamera());
         telemetryM.debug("automatedDrive", automatedDrive);
+    }
+
+    @Override
+    public void stop() {
+        robot.endPositionBlackboard.set(follower.getPose());
     }
 }

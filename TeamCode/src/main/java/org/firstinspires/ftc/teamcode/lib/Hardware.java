@@ -58,6 +58,7 @@ public class Hardware {
 
     public BlackboardObject teamBlackboard = new BlackboardObject("Team");
     public BlackboardObject sequenceBlackboard = new BlackboardObject("Artifact");
+    public BlackboardObject endPositionBlackboard = new BlackboardObject("EndPosition");
 
     public List<ArtifactType> getCurrentArtifacts() {
         return sequence;
