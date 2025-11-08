@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.lib;
 
 import static com.qualcomm.robotcore.eventloop.opmode.OpMode.blackboard;
 
+import android.util.Size;
+
 import com.qualcomm.robotcore.hardware.Servo;
 import com.seattlesolvers.solverslib.hardware.ServoEx;
 import com.seattlesolvers.solverslib.hardware.SimpleServo;
@@ -50,6 +52,9 @@ public class Hardware {
         RED,
         BLUE
     }
+    public enum servoPositions {
+        ROTATING, STOPPED, REVERSED
+    }
 
     public BlackboardObject teamBlackboard = new BlackboardObject("Team");
     public BlackboardObject sequenceBlackboard = new BlackboardObject("Artifact");
@@ -92,12 +97,12 @@ public class Hardware {
         lock = new Lock(new SimpleServo(hwMap, "lock", 0, 180));
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
 
-        VisionPortal visionPortal = new VisionPortal.Builder()
+        /*VisionPortal visionPortal = new VisionPortal.Builder()
                 .setCamera(hwMap.get(WebcamName.class, "Webcam 3"))
                 //.addProcessor(new ducProcessorArtifacts())
                 //.setLiveViewContainerId(LiveViewContainerId)
                 .enableLiveView(false)
-                .build();
+                .build();*/
     }
 
     public static class Chute {
@@ -109,21 +114,21 @@ public class Hardware {
             spinny.setInverted(true);
         }
 
-        public void setRotation(Intake.servoPositions newPosition) {
-            if (newPosition == Intake.servoPositions.ROTATING) {
+        public void setRotation(servoPositions newPosition) {
+            if (newPosition == servoPositions.ROTATING) {
                 this.isRotating = true;
                 this.spinny.set(1);
-            } else if (newPosition == Intake.servoPositions.REVERSED) {
+            } else if (newPosition == servoPositions.REVERSED) {
                 this.isRotating = true;
                 this.spinny.set(-1);
-            } else if (newPosition == Intake.servoPositions.STOPPED) {
+            } else if (newPosition == servoPositions.STOPPED) {
                 this.isRotating = false;
                 this.spinny.stop();
             }
         }
-        public void stop() {setRotation(Intake.servoPositions.STOPPED);}
-        public void start() {setRotation(Intake.servoPositions.ROTATING);}
-        public void reverse() {setRotation(Intake.servoPositions.REVERSED);}
+        public void stop() {setRotation(servoPositions.STOPPED);}
+        public void start() {setRotation(servoPositions.ROTATING);}
+        public void reverse() {setRotation(servoPositions.REVERSED);}
     }
 
     public static class Lock {
@@ -132,7 +137,7 @@ public class Hardware {
             chuteLock = myChuteLock;
         }
         public void open() {
-            chuteLock.setPosition(0.5);
+            chuteLock.setPosition(0.25);
         }
         public void close() {
             chuteLock.setPosition(0);
@@ -143,13 +148,10 @@ public class Hardware {
     //intake class includes:
     //the actual intake servo
     //the camera for color + contour detection
-    public static class Intake {
+    public class Intake {
         public CRServo intakeContServo;
         public IntakeSensor colorSensor;
         public boolean isRotating;
-        public enum servoPositions {
-            ROTATING, STOPPED, REVERSED
-        }
         public Intake(CRServo myServo, WebcamName webcam, boolean LiveViewContainerId) {
             this.intakeContServo = myServo;
             this.isRotating = false;
@@ -229,6 +231,9 @@ public class Hardware {
         public boolean isLauncherAtVelocity() {
             return launcherMotor.getCorrectedVelocity() > targetVelocity;
         }
+        public boolean isLauncherWithinVelocity() {
+            return launcherMotor.getCorrectedVelocity() > targetVelocity - 50;
+        }
         public double getLauncherVelocity() {
             return launcherMotor.getCorrectedVelocity()/(launcherMotor.getMaxRPM()*4);
         }
@@ -299,8 +304,8 @@ public class Hardware {
     //INTAKE SENSOR
     //intake sensor class includes:
     //the webcam and processor for color + contour detection
-    public static class IntakeSensor {
-        public static ducProcessorArtifacts processor;
+    public class IntakeSensor {
+        public ducProcessorArtifacts processor;
         public ArtifactType currentColor = ArtifactType.NONE;
         private int noneCount = 0;
         private final int noneThreshold = 15;
@@ -308,15 +313,20 @@ public class Hardware {
 
         public IntakeSensor(WebcamName webcam, boolean liveView) {
             this.processor = new ducProcessorArtifacts();
+            //.setLiveViewContainerId(LiveViewContainerId)
             visionPortal = new VisionPortal.Builder()
                     .setCamera(webcam)
                     .addProcessor(this.processor)
                     .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                     //.setLiveViewContainerId(LiveViewContainerId)
-                    .enableLiveView(liveView)
+                    .enableLiveView(false)
+                    .setCameraResolution(new Size(640, 480))
                     .build();
             ;
 
+        }
+        public VisionPortal.CameraState getCamera() {
+            return visionPortal.getCameraState();
         }
         public ArtifactType detectColor() {
             double greenContourAmount = this.processor.getContourGreen();

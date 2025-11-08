@@ -32,6 +32,7 @@ public class BasicDrive extends OpMode {
     double targetHeading = Math.toRadians(90);
     double targetVelocity = 380;
     double targetPitch = 195;
+    int lockTicks = 100;
     PIDFController headingPIDController = new PIDFController(new PIDFCoefficients(0, 0, 0, 0));
     double headingError = 0;
     Hardware.Teams team;
@@ -175,19 +176,70 @@ public class BasicDrive extends OpMode {
             slowMode = !slowMode;
         }
 
-        if (gamepad1.dpadLeftWasPressed()) {
+        if (gamepad1.right_trigger > 0 && gamepad1.left_trigger > 0) {
+            robot.shooterRight.setLauncherVelocity(targetVelocity);
             robot.shooterLeft.setLauncherVelocity(targetVelocity);
+            if (robot.shooterRight.isLauncherWithinVelocity() && robot.shooterLeft.isLauncherWithinVelocity()) {
+                robot.lock.open();
+                robot.chuteRight.start();
+                robot.chuteLeft.start();
+            } else {
+                robot.lock.close();
+                robot.chuteRight.start();
+                robot.chuteLeft.start();
+            }
+        } else {
+
+            if (gamepad1.right_trigger > 0) {
+                robot.shooterRight.setLauncherVelocity(targetVelocity);
+                if (robot.shooterRight.isLauncherWithinVelocity()) {
+                    robot.lock.open();
+                    robot.chuteRight.start();
+                } else {
+                    robot.lock.close();
+                    robot.chuteRight.stop();
+                }
+            } else {
+                robot.shooterRight.stop();
+                if (!(gamepad1.left_trigger > 0)) {
+                    robot.lock.close();
+                }
+                if (!(gamepad1.left_bumper)) {
+                    robot.chuteRight.stop();
+                }
+            }
+
+            if (gamepad1.left_trigger > 0) {
+                robot.shooterLeft.setLauncherVelocity(targetVelocity);
+                if (robot.shooterLeft.isLauncherWithinVelocity()) {
+                    robot.lock.open();
+                    robot.chuteLeft.start();
+                } else {
+                    robot.lock.close();
+                    robot.chuteLeft.stop();
+                }
+            } else {
+                robot.shooterLeft.stop();
+                if (!(gamepad1.right_trigger > 0)) {
+                    robot.lock.close();
+                }
+                if (!(gamepad1.left_bumper)) {
+                    robot.chuteLeft.stop();
+                }
+            }
+
+        }
+
+        if (gamepad1.dpadLeftWasPressed()) {
+            robot.shooterRight.setLauncherVelocity(targetVelocity);
         }
         if (gamepad1.dpadRightWasPressed()) {
-            robot.shooterLeft.stop();
+            robot.shooterRight.stop();
         }
-        if (gamepad1.dpadUpWasPressed()) {
-            targetVelocity = targetVelocity + 0.05;
-            robot.shooterLeft.setLauncherVelocity(targetVelocity);
-        }
-        if (gamepad1.dpadDownWasPressed()) {
-            targetVelocity = targetVelocity - 0.05;
-            robot.shooterLeft.setLauncherVelocity(targetVelocity);
+        robot.shooterRight.keepLauncherAtVelocity();
+        robot.shooterLeft.keepLauncherAtVelocity();
+        if (gamepad1.dpad_up) {
+            robot.lock.open();
         }
         if (gamepad1.x) {
             if (targetPitch < 200) {
@@ -206,14 +258,15 @@ public class BasicDrive extends OpMode {
         telemetryM.debug("position", follower.getPose());
         telemetryM.debug("velocity", follower.getVelocity());
         telemetryM.debug("target velocity shooter", targetVelocity);
-        telemetryM.debug("velocity shooter", robot.shooterLeft.getLauncherVelocity());
+        telemetryM.debug("velocity shooter", robot.shooterRight.getLauncherVelocity());
         telemetryM.debug("power shooter", robot.shooterLeft.launcherMotor.get());
         telemetryM.debug("are we at velocity:", robot.shooterLeft.isLauncherAtVelocity());
-        robot.shooterLeft.keepLauncherAtVelocity();
         telemetryM.debug("pitch", robot.shooterLeft.getPitchAngle());
         telemetryM.debug("seq", robot.sequence);
         telemetryM.debug("detected front", detectedArtifactFront);
         telemetryM.debug("detected back", detectedArtifactBack);
+        telemetryM.debug("detected front", robot.intakeFront.colorSensor.getCamera());
+        telemetryM.debug("detected back", robot.intakeBack.colorSensor.getCamera());
         telemetryM.debug("automatedDrive", automatedDrive);
     }
 }
