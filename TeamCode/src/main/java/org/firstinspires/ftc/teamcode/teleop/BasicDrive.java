@@ -105,14 +105,14 @@ public class BasicDrive extends OpMode {
                         -gamepad1.left_stick_y,
                         -gamepad1.left_stick_x,
                         headingPIDController.run(),
-                        false
+                        true
                 );
             } else {
                 follower.setTeleOpDrive(
                         -gamepad1.left_stick_y,
                         -gamepad1.left_stick_x,
                         -gamepad1.right_stick_x * 0.7,
-                        false
+                        true
                 );
             }
         }
