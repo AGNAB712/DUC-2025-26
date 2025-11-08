@@ -19,7 +19,7 @@ public class ducProcessorArtifacts implements VisionProcessor {
 
     public Scalar redLower = new Scalar(82.2, 66.8, 131.8);
     public Scalar redUpper = new Scalar(134.6, 255.0, 255.0);
-    public Scalar greenLower = new Scalar(75.0, 53.0, 49.0);
+    public Scalar greenLower = new Scalar(59.0, 53.0, 49.0);
     public Scalar greenUpper = new Scalar(93.5, 255.0, 222.4);
     public Scalar purpleLower = new Scalar(136.0, 48.2, 70.8);
     public Scalar purpleUpper = new Scalar(160.0, 255.0, 255.0);
@@ -36,7 +36,7 @@ public class ducProcessorArtifacts implements VisionProcessor {
     public Mat purpleMat = new Mat();
 
 
-    boolean tuning = false;
+    boolean tuning = true;
     public Mat hsvPurple = new Mat();
     public Mat hsvGreen = new Mat();
     public Mat thresholdGreen = new Mat();
@@ -68,7 +68,7 @@ public class ducProcessorArtifacts implements VisionProcessor {
 
         if (tuning) {
             Imgproc.cvtColor(frameMain, frameMain, Imgproc.COLOR_RGB2HSV);
-            Core.inRange(frameMain, greenLower, greenUpper, frameMain);
+            Core.inRange(frameMain, purpleLower, purpleUpper, frameMain);
             greenMat = new Mat(frameMain, mainRect);
 
             //Imgproc.cvtColor(framePurple, framePurple, Imgproc.COLOR_RGB2HSV);

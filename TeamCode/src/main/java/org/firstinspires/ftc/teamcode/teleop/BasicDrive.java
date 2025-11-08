@@ -40,17 +40,20 @@ public class BasicDrive extends OpMode {
 
     @Override
     public void init() {
+        robot = new Hardware(hardwareMap);
         follower = Constants.createFollower(hardwareMap);
-        if (robot.endPositionBlackboard.get() != null) {
-            Object endPosFromAuto = robot.endPositionBlackboard.get();
+        follower.update();
+
+        telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
+        headingPIDController.setCoefficients(follower.getConstants().coefficientsHeadingPIDF);
+
+        Object endPosFromAuto = robot.endPositionBlackboard.get();
+        if (endPosFromAuto != null) {
             follower.setStartingPose((Pose) endPosFromAuto);
         } else {
             follower.setStartingPose(new Pose());
         }
-        follower.update();
-        telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
-        robot = new Hardware(hardwareMap);
-        headingPIDController.setCoefficients(follower.getConstants().coefficientsHeadingPIDF);
+
 
         if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
             team = Hardware.Teams.RED;
@@ -59,7 +62,7 @@ public class BasicDrive extends OpMode {
         }
 
         pathChain = () -> follower.pathBuilder() //Lazy Curve Generation
-                .addPath(new Path(new BezierLine(follower::getPose, new Pose(0, 0))))
+                .addPath(new Path(new BezierLine(follower::getPose, new Pose(72, 72))))
                 .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), 0.8))
                 .build();
     }
@@ -105,14 +108,14 @@ public class BasicDrive extends OpMode {
                         -gamepad1.left_stick_y,
                         -gamepad1.left_stick_x,
                         headingPIDController.run(),
-                        true
+                        false
                 );
             } else {
                 follower.setTeleOpDrive(
                         -gamepad1.left_stick_y,
                         -gamepad1.left_stick_x,
                         -gamepad1.right_stick_x * 0.7,
-                        true
+                        false
                 );
             }
         }
@@ -188,6 +191,7 @@ public class BasicDrive extends OpMode {
                 if (robot.shooterRight.isLauncherWithinVelocity()) {
                     robot.lock.open();
                     robot.chuteRight.start();
+                    gamepad1.rumble(50);
                 } else {
                     robot.lock.close();
                     robot.chuteRight.stop();
@@ -207,6 +211,7 @@ public class BasicDrive extends OpMode {
                 if (robot.shooterLeft.isLauncherWithinVelocity()) {
                     robot.lock.open();
                     robot.chuteLeft.start();
+                    gamepad1.rumble(50);
                 } else {
                     robot.lock.close();
                     robot.chuteLeft.stop();
