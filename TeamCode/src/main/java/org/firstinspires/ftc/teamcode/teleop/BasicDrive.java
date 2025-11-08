@@ -30,8 +30,8 @@ public class BasicDrive extends OpMode {
     private boolean slowMode = false;
     static boolean headingLock = false;
     double targetHeading = Math.toRadians(90);
-    double targetVelocity = 1000;
-    double targetPitch = 0;
+    double targetVelocity = 380;
+    double targetPitch = 195;
     PIDFController headingPIDController = new PIDFController(new PIDFCoefficients(0, 0, 0, 0));
     double headingError = 0;
     Hardware.Teams team;
@@ -61,6 +61,8 @@ public class BasicDrive extends OpMode {
     @Override
     public void start() {
         follower.startTeleopDrive();
+        robot.shooterRight.stop();
+        robot.shooterLeft.stop();
     }
 
     @Override
@@ -125,7 +127,7 @@ public class BasicDrive extends OpMode {
         Hardware.ArtifactType detectedArtifactFront = robot.intakeFront.colorSensor.detectColor();
         Hardware.ArtifactType detectedArtifactBack = robot.intakeBack.colorSensor.detectColor();
         robot.intakeFront.colorSensor.trackColor(detectedArtifactFront);
-        robot.intakeFront.colorSensor.trackColor(detectedArtifactBack);
+        robot.intakeBack.colorSensor.trackColor(detectedArtifactBack);
 
         if (detectedArtifactFront != Hardware.ArtifactType.NONE) { //replace this later for a smarter system
             robot.sorter.updateServo(detectedArtifactFront);
@@ -180,22 +182,24 @@ public class BasicDrive extends OpMode {
             robot.shooterLeft.stop();
         }
         if (gamepad1.dpadUpWasPressed()) {
-            targetVelocity = targetVelocity + 50;
+            targetVelocity = targetVelocity + 0.05;
+            robot.shooterLeft.setLauncherVelocity(targetVelocity);
         }
         if (gamepad1.dpadDownWasPressed()) {
-            targetVelocity = targetVelocity - 50;
+            targetVelocity = targetVelocity - 0.05;
+            robot.shooterLeft.setLauncherVelocity(targetVelocity);
         }
         if (gamepad1.x) {
-            if (targetPitch < 360) {
+            if (targetPitch < 200) {
                 targetPitch = targetPitch + 5;
             }
-            robot.shooterLeft.updatePitch(targetPitch);
+            robot.shooterRight.updatePitch(targetPitch);
         }
         if (gamepad1.y) {
             if (targetPitch > 0) {
                 targetPitch = targetPitch - 5;
             }
-            robot.shooterLeft.updatePitch(targetPitch);
+            robot.shooterRight.updatePitch(targetPitch);
         }
 
 
@@ -203,8 +207,13 @@ public class BasicDrive extends OpMode {
         telemetryM.debug("velocity", follower.getVelocity());
         telemetryM.debug("target velocity shooter", targetVelocity);
         telemetryM.debug("velocity shooter", robot.shooterLeft.getLauncherVelocity());
-        telemetryM.debug("corrected velocity shooter", robot.shooterLeft.launcherMotor.getCorrectedVelocity());
-        telemetryM.debug("pitch", targetPitch);
+        telemetryM.debug("power shooter", robot.shooterLeft.launcherMotor.get());
+        telemetryM.debug("are we at velocity:", robot.shooterLeft.isLauncherAtVelocity());
+        robot.shooterLeft.keepLauncherAtVelocity();
+        telemetryM.debug("pitch", robot.shooterLeft.getPitchAngle());
+        telemetryM.debug("seq", robot.sequence);
+        telemetryM.debug("detected front", detectedArtifactFront);
+        telemetryM.debug("detected back", detectedArtifactBack);
         telemetryM.debug("automatedDrive", automatedDrive);
     }
 }

@@ -65,7 +65,6 @@ public class Hardware {
         //1 intakeBack
         //2 rightChute
         //3 leftChute
-        //5 pitchRight
         //expansion - motors
         //0 frontLeft
         //1 backLeft
@@ -75,16 +74,17 @@ public class Hardware {
         //0 sorter
         //1 lock
         //2 pitchLeft
+        //3 pitchRight
         //control - motors
         //0 frontRight
         //1 backRight
         //2 shooterLeft
 
-        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"), 0);
-        intakeBack = new Intake(new CRServo(hwMap, "intakeBack"), hwMap.get(WebcamName.class, "Webcam 2"), 1);
+        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"), false);
+        intakeBack = new Intake(new CRServo(hwMap, "intakeBack"), hwMap.get(WebcamName.class, "Webcam 2"), true);
 
-        shooterRight = new Shooter(new SimpleServo(hwMap, "pitchRight", 0, 360), new MotorEx(hwMap, "shooterRight"));
-        shooterLeft = new Shooter(new SimpleServo(hwMap, "pitchLeft", 0, 360), new MotorEx(hwMap, "shooterLeft"));
+        shooterRight = new Shooter(new SimpleServo(hwMap, "pitchRight", 0, 360), new MotorEx(hwMap, "shooterRight"), true);
+        shooterLeft = new Shooter(new SimpleServo(hwMap, "pitchLeft", 0, 360), new MotorEx(hwMap, "shooterLeft"), false);
 
         chuteRight = new Chute(new CRServo(hwMap, "rightChute"));
         chuteLeft = new Chute(new CRServo(hwMap, "leftChute"));
@@ -150,7 +150,7 @@ public class Hardware {
         public enum servoPositions {
             ROTATING, STOPPED, REVERSED
         }
-        public Intake(CRServo myServo, WebcamName webcam, int LiveViewContainerId) {
+        public Intake(CRServo myServo, WebcamName webcam, boolean LiveViewContainerId) {
             this.intakeContServo = myServo;
             this.isRotating = false;
             intakeContServo.setInverted(true);
@@ -180,16 +180,18 @@ public class Hardware {
     //yaw servo, pitch servo
     //math for pointing to a position
     public static class Shooter {
-        public double pitch = 0;
+        public double pitch = -100;
         public ServoEx pitchServo;
         public MotorEx launcherMotor;
+        public double targetVelocity = 0;
 
-        public Shooter(ServoEx myPitchServo, MotorEx myLauncherMotor) {
+        public Shooter(ServoEx myPitchServo, MotorEx myLauncherMotor, boolean isInverted) {
             pitchServo = myPitchServo;
             launcherMotor = myLauncherMotor;
             launcherMotor.setRunMode(Motor.RunMode.VelocityControl);
             launcherMotor.setVeloCoefficients(0.05, 0.01, 0.31);
-            //launcherMotor.setInverted(true);
+            launcherMotor.setInverted(isInverted);
+            launcherMotor.stopMotor();
         }
 
         /*void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
@@ -212,22 +214,39 @@ public class Hardware {
             return (yawDegrees/360.0 * ticksPerFullGearRotation);
         }*/
 
-        public void setLauncherPower(double power) {
-            launcherMotor.set(power);
-        }
+
         public void setLauncherVelocity(double vel) {
-            launcherMotor.set(vel);
+            launcherMotor.set(1);
+            targetVelocity = vel;
+        }
+        public void keepLauncherAtVelocity() {
+            if (isLauncherAtVelocity()) {
+                launcherMotor.set(0);
+            } else {
+                launcherMotor.set(1);
+            }
+        }
+        public boolean isLauncherAtVelocity() {
+            return launcherMotor.getCorrectedVelocity() > targetVelocity;
         }
         public double getLauncherVelocity() {
-            return launcherMotor.getVelocity();
+            return launcherMotor.getCorrectedVelocity()/(launcherMotor.getMaxRPM()*4);
         }
         public void stop() {
+            targetVelocity = -100;
             launcherMotor.stopMotor();
         }
 
         public void updatePitch(double pitchToPoint) {
             pitchServo.turnToAngle(pitchToPoint);
             pitch = pitchToPoint;
+        }
+        public double getPitchAngle() {
+            return ((pitchServo.getAngle() - 195) / 195) * -17;
+        }
+        public void setPitchAngle(double pitchToPoint) {
+            double clampedAngle = clamp(pitchToPoint, 0, 17);
+            pitchServo.turnToAngle((clampedAngle / 17) * 195);
         }
     }
 
@@ -281,20 +300,23 @@ public class Hardware {
     //intake sensor class includes:
     //the webcam and processor for color + contour detection
     public static class IntakeSensor {
-        private static ducProcessorArtifacts processor;
+        public static ducProcessorArtifacts processor;
         public ArtifactType currentColor = ArtifactType.NONE;
         private int noneCount = 0;
         private final int noneThreshold = 15;
+        VisionPortal visionPortal;
 
-        public IntakeSensor(WebcamName webcam, int LiveViewContainerId) {
+        public IntakeSensor(WebcamName webcam, boolean liveView) {
             this.processor = new ducProcessorArtifacts();
-            VisionPortal visionPortal = new VisionPortal.Builder()
+            visionPortal = new VisionPortal.Builder()
                     .setCamera(webcam)
                     .addProcessor(this.processor)
+                    .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                     //.setLiveViewContainerId(LiveViewContainerId)
-                    .enableLiveView(false)
+                    .enableLiveView(liveView)
                     .build();
             ;
+
         }
         public ArtifactType detectColor() {
             double greenContourAmount = this.processor.getContourGreen();
@@ -421,7 +443,15 @@ public class Hardware {
         }
     }
 
-
+    public static double clamp(double value, double min, double max) {
+        if (value > max) {
+            return max;
+        } else if (value < min) {
+            return min;
+        } else {
+            return value;
+        }
+    }
 
 
 }
