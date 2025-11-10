@@ -4,7 +4,10 @@ import static com.qualcomm.robotcore.eventloop.opmode.OpMode.blackboard;
 
 import android.util.Size;
 
+import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.control.PIDFController;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.seattlesolvers.solverslib.command.SubsystemBase;
 import com.seattlesolvers.solverslib.hardware.ServoEx;
 import com.seattlesolvers.solverslib.hardware.SimpleServo;
 import com.seattlesolvers.solverslib.hardware.motors.CRServo;
@@ -42,6 +45,7 @@ public class Hardware {
     public Intake intakeFront;
     public Intake intakeBack;
     public Lock lock;
+
     public static List<ArtifactType> sequence = new ArrayList<>();
     public enum ArtifactType {
         GREEN,
@@ -106,7 +110,7 @@ public class Hardware {
                 .build();*/
     }
 
-    public static class Chute {
+    public static class Chute extends SubsystemBase {
         public CRServo spinny;
         public boolean isRotating = false;
 
@@ -132,7 +136,7 @@ public class Hardware {
         public void reverse() {setRotation(servoPositions.REVERSED);}
     }
 
-    public static class Lock {
+    public static class Lock extends SubsystemBase {
         public SimpleServo chuteLock;
         public Lock(SimpleServo myChuteLock) {
             chuteLock = myChuteLock;
@@ -149,7 +153,7 @@ public class Hardware {
     //intake class includes:
     //the actual intake servo
     //the camera for color + contour detection
-    public class Intake {
+    public class Intake extends SubsystemBase {
         public CRServo intakeContServo;
         public IntakeSensor colorSensor;
         public boolean isRotating;
@@ -182,71 +186,37 @@ public class Hardware {
     //shooter class includes:
     //yaw servo, pitch servo
     //math for pointing to a position
-    public static class Shooter {
-        public double pitch = -100;
+    public static class Shooter extends SubsystemBase {
+        public double pitch = 0;
         public ServoEx pitchServo;
         public MotorEx launcherMotor;
         public double targetVelocity = 0;
+        PIDFController velocityPIDController = new PIDFController(new PIDFCoefficients(1, 0, 0.3, 0));
 
         public Shooter(ServoEx myPitchServo, MotorEx myLauncherMotor, boolean isInverted) {
             pitchServo = myPitchServo;
             launcherMotor = myLauncherMotor;
-            launcherMotor.setRunMode(Motor.RunMode.VelocityControl);
-            launcherMotor.setVeloCoefficients(0.05, 0.01, 0.31);
             launcherMotor.setInverted(isInverted);
             launcherMotor.stopMotor();
         }
 
-        /*void pointToPosition(Pose positionToPoint, Pose currentPosition, double robotHeading, Vector robotVelocity) {
-            Pose projectedPosition = new Pose(currentPosition.getX() + robotVelocity.getXComponent(), currentPosition.getY() + robotVelocity.getYComponent());
-            double theta = Math.toDegrees(
-                    Math.atan(
-                            (positionToPoint.getX() - currentPosition.getX())
-                                    /
-                                    (positionToPoint.getY() - currentPosition.getY())
-                    )
-            ) - robotHeading;
-            updateYaw(theta);
-        }*/
-
-        /*double yawDegreesToYawTicks(double yawDegrees) {
-            double ticksPerFullGearRotation = (360 / percentPerFullYawServoRotation);
-            //ppfysr is the gear ratio (ie 18 tooth gear into 80 tooth gear)
-            //this ends up being 1600 but i can change it easy if the gear ratios change
-
-            return (yawDegrees/360.0 * ticksPerFullGearRotation);
-        }*/
-
 
         public void setLauncherVelocity(double vel) {
-            launcherMotor.set(1);
             targetVelocity = vel;
         }
         public void keepLauncherAtVelocity() {
-            if (isLauncherAtVelocity()) {
-                launcherMotor.set(0);
-            } else {
-                launcherMotor.set(1);
-            }
+            double velError = targetVelocity - launcherMotor.getCorrectedVelocity();
+            velocityPIDController.updateError(velError);
+            launcherMotor.set(velocityPIDController.run());
         }
         public boolean isLauncherAtVelocity() {
-            return launcherMotor.getCorrectedVelocity() > targetVelocity;
-        }
-        public boolean isLauncherWithinVelocity() {
-            return launcherMotor.getCorrectedVelocity() > targetVelocity - 50;
-        }
-        public double getLauncherVelocity() {
-            return launcherMotor.getCorrectedVelocity()/(launcherMotor.getMaxRPM()*4);
+            double currentVel = launcherMotor.getCorrectedVelocity();
+            return (targetVelocity + 50) > currentVel && currentVel > (targetVelocity - 50);
         }
         public void stop() {
-            targetVelocity = -100;
             launcherMotor.stopMotor();
         }
 
-        public void updatePitch(double pitchToPoint) {
-            pitchServo.turnToAngle(pitchToPoint);
-            pitch = pitchToPoint;
-        }
         public double getPitchAngle() {
             return ((pitchServo.getAngle() - 195) / 195) * -17;
         }
@@ -259,7 +229,7 @@ public class Hardware {
     //SORTER
     //sorter class includes:
     //the sorter servo
-    public static class Sorter {
+    public static class Sorter extends SubsystemBase {
         public ServoEx sorterServo;
         public double greenPosition = 60;
         public double purplePosition = 110;
@@ -271,7 +241,7 @@ public class Hardware {
         public Sorter(ServoEx myServo) {
             this.sorterServo = myServo;
         }
-        public void updateServo(ArtifactType detectedColor) {
+        public void updateServo(ArtifactType detectedColor, boolean isInverted) {
             if (detectedColor != ArtifactType.NONE) {
                 noneCount = 0;
 
@@ -289,10 +259,11 @@ public class Hardware {
                 }
             }
 
+
             if (currentColor == ArtifactType.GREEN) {
-                this.green();
+                if (isInverted) {this.purple();} else {this.green();}
             } else if (currentColor == ArtifactType.PURPLE) {
-                this.purple();
+                if (isInverted) {this.green();} else {this.purple();}
             } else {
                 this.neutral();
             }
@@ -305,7 +276,7 @@ public class Hardware {
     //INTAKE SENSOR
     //intake sensor class includes:
     //the webcam and processor for color + contour detection
-    public class IntakeSensor {
+    public class IntakeSensor extends SubsystemBase {
         public ducProcessorArtifacts processor;
         public ArtifactType currentColor = ArtifactType.NONE;
         private int noneCount = 0;

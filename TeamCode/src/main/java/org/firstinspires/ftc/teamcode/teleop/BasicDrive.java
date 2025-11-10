@@ -139,17 +139,11 @@ public class BasicDrive extends OpMode {
         robot.intakeBack.colorSensor.trackColor(detectedArtifactBack);
 
         if (detectedArtifactFront != Hardware.ArtifactType.NONE) { //replace this later for a smarter system
-            robot.sorter.updateServo(detectedArtifactFront);
+            robot.sorter.updateServo(detectedArtifactFront, false);
         } else if (detectedArtifactBack != Hardware.ArtifactType.NONE) {
-
-            if (detectedArtifactBack == Hardware.ArtifactType.GREEN) { //invert back updating (i should just make this a function)
-                robot.sorter.updateServo(Hardware.ArtifactType.PURPLE);
-            } else if (detectedArtifactBack == Hardware.ArtifactType.PURPLE) {
-                robot.sorter.updateServo(Hardware.ArtifactType.GREEN);
-            }
-
+            robot.sorter.updateServo(detectedArtifactBack, true);
         } else {
-            robot.sorter.updateServo(Hardware.ArtifactType.NONE);
+            robot.sorter.updateServo(Hardware.ArtifactType.NONE, false);
         }
         if (gamepad1.rightBumperWasPressed()) {
             if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
@@ -188,7 +182,7 @@ public class BasicDrive extends OpMode {
 
             if (gamepad1.right_trigger > 0) {
                 robot.shooterRight.setLauncherVelocity(targetVelocity);
-                if (robot.shooterRight.isLauncherWithinVelocity()) {
+                if (robot.shooterRight.isLauncherAtVelocity()) {
                     robot.lock.open();
                     robot.chuteRight.start();
                     gamepad1.rumble(50);
@@ -208,7 +202,7 @@ public class BasicDrive extends OpMode {
 
             if (gamepad1.left_trigger > 0) {
                 robot.shooterLeft.setLauncherVelocity(targetVelocity);
-                if (robot.shooterLeft.isLauncherWithinVelocity()) {
+                if (robot.shooterLeft.isLauncherAtVelocity()) {
                     robot.lock.open();
                     robot.chuteLeft.start();
                     gamepad1.rumble(50);
@@ -235,22 +229,21 @@ public class BasicDrive extends OpMode {
             if (targetPitch < 200) {
                 targetPitch = targetPitch + 5;
             }
-            robot.shooterRight.updatePitch(targetPitch);
-            robot.shooterLeft.updatePitch(targetPitch);
+            robot.shooterRight.setPitchAngle(targetPitch);
+            robot.shooterLeft.setPitchAngle(targetPitch);
         }
         if (gamepad1.dpad_left) {
             if (targetPitch > 0) {
                 targetPitch = targetPitch - 5;
             }
-            robot.shooterRight.updatePitch(targetPitch);
-            robot.shooterLeft.updatePitch(targetPitch);
+            robot.shooterRight.setPitchAngle(targetPitch);
+            robot.shooterLeft.setPitchAngle(targetPitch);
         }
 
 
         telemetryM.debug("position", follower.getPose());
         telemetryM.debug("velocity", follower.getVelocity());
         telemetryM.debug("target velocity shooter", targetVelocity);
-        telemetryM.debug("velocity shooter", robot.shooterRight.getLauncherVelocity());
         telemetryM.debug("power shooter", robot.shooterLeft.launcherMotor.get());
         telemetryM.debug("are we at velocity:", robot.shooterLeft.isLauncherAtVelocity());
         telemetryM.debug("pitch", robot.shooterLeft.getPitchAngle());
