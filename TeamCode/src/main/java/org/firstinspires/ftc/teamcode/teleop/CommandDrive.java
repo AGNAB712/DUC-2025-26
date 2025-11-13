@@ -13,6 +13,7 @@ import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.seattlesolvers.solverslib.command.CommandScheduler;
+import com.seattlesolvers.solverslib.command.ParallelCommandGroup;
 import com.seattlesolvers.solverslib.command.RepeatCommand;
 import com.seattlesolvers.solverslib.command.button.Button;
 import com.seattlesolvers.solverslib.command.button.GamepadButton;
@@ -37,17 +38,23 @@ public class CommandDrive extends OpMode {
     private boolean slowMode = false;
     static boolean headingLock = false;
     double targetHeading = Math.toRadians(90);
-    double targetVelocity = 380;
-    double targetPitch = 195;
+    double atVelTicks = 0;
+    static double targetVelocity = 1500;
     int lockTicks = 100;
     PIDFController headingPIDController = new PIDFController(new PIDFCoefficients(0, 0, 0, 0));
+    static PIDFController launcherPidController = new PIDFController(new PIDFCoefficients(0.0002, 0, 0, 0));
     double headingError = 0;
+    double velocityError = 0;
+    double thePowerForTheLauncher = 0;
+    double targetVelocityPid = 0;
     Hardware.Teams team;
     Hardware robot;
     GamepadEx driverGamepad;
 
     @Override
     public void init() {
+        robot = new Hardware(hardwareMap);
+
         follower = Constants.createFollower(hardwareMap);
         if (robot.endPositionBlackboard.get() != null) {
             Object endPosFromAuto = robot.endPositionBlackboard.get();
@@ -57,7 +64,7 @@ public class CommandDrive extends OpMode {
         }
         follower.update();
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
-        robot = new Hardware(hardwareMap);
+
         headingPIDController.setCoefficients(follower.getConstants().coefficientsHeadingPIDF);
 
         if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
@@ -72,26 +79,41 @@ public class CommandDrive extends OpMode {
         Button shootRightButton = new GamepadButton(
                 driverGamepad, GamepadKeys.Button.RIGHT_BUMPER
         ).whenPressed(
-                new RepeatCommand(
-                        (commandsList.new Shoot(robot.shooterRight, robot.chuteRight, robot.lock, 380)),
-                        2
-                )
+                commandsList.new Shoot(robot.shooterLeft, robot.chuteLeft, robot.lock, 1000)
+        );
+
+        Button shootLeftButton = new GamepadButton(
+                driverGamepad, GamepadKeys.Button.LEFT_BUMPER
+        ).whenPressed(
+                commandsList.new Shoot(robot.shooterRight, robot.chuteRight, robot.lock, 1000)
+        );
+
+        Button sortButton = new GamepadButton(
+                driverGamepad, GamepadKeys.Button.B
+        ).whenHeld(
+                commandsList.new DetectColorAndSort(robot.intakeBack.colorSensor, robot.intakeBack.colorSensor, robot.sorter)
         );
 
         class GamepadLeftTrigger extends Trigger {
             @Override
             public boolean get() {
-                return gamepad1.left_trigger > 0;
+                return gamepad1.right_trigger > 0;
             }
         }
 
         Trigger hold = new GamepadLeftTrigger().whenActive(
-                commandsList.new SetShooterVelocity(robot.shooterLeft, 380)
+                commandsList.new KeepShooterVelocity(robot.shooterRight, 1000)
+        ).whenInactive(
+                commandsList.new SetShooterVelocity(robot.shooterRight, 0)
         );
+
+        Button lockButton = new GamepadButton(
+                driverGamepad, GamepadKeys.Button.DPAD_UP
+        ).toggleWhenPressed(new ParallelCommandGroup(commandsList.new OpenLock(robot.lock), commandsList.new SpinChute(robot.chuteRight, false)), commandsList.new CloseLock(robot.lock));
 
         Button intakeButton = new GamepadButton(
                 driverGamepad, GamepadKeys.Button.A
-        ).toggleWhenPressed(commandsList.new RunIntake(robot.chuteRight, robot.chuteLeft, robot.intakeFront, robot.intakeBack));
+        ).toggleWhenPressed(commandsList.new RunIntake(robot.chuteRight, robot.chuteLeft, robot.intakeFront, robot.intakeBack, robot.lock));
     }
 
     @Override
@@ -135,20 +157,27 @@ public class CommandDrive extends OpMode {
                         -gamepad1.left_stick_y,
                         -gamepad1.left_stick_x,
                         headingPIDController.run(),
-                        true
+                        false
                 );
             } else {
                 follower.setTeleOpDrive(
                         -gamepad1.left_stick_y,
                         -gamepad1.left_stick_x,
                         -gamepad1.right_stick_x * 0.7,
-                        true
+                        false
                 );
             }
         }
 
         if (gamepad1.yWasPressed()) {
             follower.setPose(follower.getPose().withHeading(0));
+        }
+
+        if (gamepad1.left_trigger > 0) {
+            shoot(targetVelocity);
+
+        } else {
+            robot.shooterRight.launcherMotor.set(0);
         }
 
         CommandScheduler.getInstance().run();
@@ -160,11 +189,34 @@ public class CommandDrive extends OpMode {
 
 
         telemetryM.debug("position", follower.getPose());
+        telemetryM.addData("launcherPower", robot.shooterRight.launcherMotor.get());
+        telemetryM.addData("launcherPower", robot.shooterRight.launcherMotor.getCorrectedVelocity());
+        telemetryM.addData("launcher target power", thePowerForTheLauncher);
+        telemetryM.addData("launcher error", velocityError);
+
         telemetryM.update(telemetry);
     }
 
     @Override
     public void stop() {
         robot.endPositionBlackboard.set(follower.getPose());
+    }
+
+    void shoot(double targetPosition) {
+
+        velocityError = 1000 - robot.shooterRight.launcherMotor.getCorrectedVelocity();
+        launcherPidController.updateError(velocityError);
+        thePowerForTheLauncher = launcherPidController.run();
+        if (robot.shooterRight.launcherMotor.getCorrectedVelocity() > targetPosition) {
+            robot.shooterRight.launcherMotor.set(0.001);
+            atVelTicks++;
+            if (atVelTicks > 25) {
+                robot.chuteRight.start();
+                robot.lock.open();
+            }
+        } else {
+            robot.shooterRight.launcherMotor.set(1);
+            atVelTicks = 0;
+        }
     }
 }

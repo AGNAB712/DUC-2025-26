@@ -33,7 +33,6 @@ import java.util.List;
 public class Hardware {
 
     private HardwareMap hwMap;
-    public Follower follower;
     public MotorEx fL, fR, rL, rR;
     //public Intake intake1 = new Intake();
     //public Intake intake2 = new Intake();
@@ -45,6 +44,9 @@ public class Hardware {
     public Intake intakeFront;
     public Intake intakeBack;
     public Lock lock;
+
+    public static double kP = 0.0011;
+    public static double kD = 0.00003;
 
     public static List<ArtifactType> sequence = new ArrayList<>();
     public enum ArtifactType {
@@ -191,13 +193,16 @@ public class Hardware {
         public ServoEx pitchServo;
         public MotorEx launcherMotor;
         public double targetVelocity = 0;
-        PIDFController velocityPIDController = new PIDFController(new PIDFCoefficients(1, 0, 0.3, 0));
+        public double velError;
+        public double powerAmount = 0;
+        PIDFController velocityPIDController = new PIDFController(new PIDFCoefficients(0.025, 0, 0, 0));
 
         public Shooter(ServoEx myPitchServo, MotorEx myLauncherMotor, boolean isInverted) {
             pitchServo = myPitchServo;
             launcherMotor = myLauncherMotor;
             launcherMotor.setInverted(isInverted);
             launcherMotor.stopMotor();
+            launcherMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         }
 
 
@@ -205,13 +210,16 @@ public class Hardware {
             targetVelocity = vel;
         }
         public void keepLauncherAtVelocity() {
-            double velError = targetVelocity - launcherMotor.getCorrectedVelocity();
-            velocityPIDController.updateError(velError);
-            launcherMotor.set(velocityPIDController.run());
+            if (launcherMotor.getCorrectedVelocity() < targetVelocity) {
+                launcherMotor.set(1);
+            } else {
+                launcherMotor.set(0.65);
+            }
+
         }
         public boolean isLauncherAtVelocity() {
             double currentVel = launcherMotor.getCorrectedVelocity();
-            return (targetVelocity + 50) > currentVel && currentVel > (targetVelocity - 50);
+            return (targetVelocity + 20) > currentVel && currentVel > (targetVelocity - 20);
         }
         public void stop() {
             launcherMotor.stopMotor();
@@ -292,7 +300,7 @@ public class Hardware {
                     .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                     //.setLiveViewContainerId(LiveViewContainerId)
                     .enableLiveView(false)
-                    .setCameraResolution(new Size(640, 480))
+                    .setCameraResolution(new Size(160, 120))
                     .build();
             ;
 

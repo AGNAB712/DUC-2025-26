@@ -36,7 +36,7 @@ public class ducProcessorArtifacts implements VisionProcessor {
     public Mat purpleMat = new Mat();
 
 
-    boolean tuning = true;
+    boolean tuning = false;
     public Mat hsvPurple = new Mat();
     public Mat hsvGreen = new Mat();
     public Mat thresholdGreen = new Mat();

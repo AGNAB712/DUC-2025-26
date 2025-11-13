@@ -177,10 +177,10 @@ public class Drive extends OpMode {
             robot.chuteLeft.stop();
         }
         if (gamepadDrive.wasJustPressed(GamepadKeys.Button.Y)) {
-            robot.shooterRight.updatePitch(360);
+            robot.shooterRight.setPitchAngle(17);
         }
         if (gamepadDrive.wasJustReleased(GamepadKeys.Button.Y)) {
-            robot.shooterRight.updatePitch(0);
+            robot.shooterRight.setPitchAngle(0);
         }
 
 

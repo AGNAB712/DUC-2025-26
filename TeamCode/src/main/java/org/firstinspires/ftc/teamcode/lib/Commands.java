@@ -68,11 +68,44 @@ public class Commands {
         }
         @Override
         public void execute() {
-            shooter.keepLauncherAtVelocity();
+            if (targetVelocity == 0) {
+                shooter.stop();
+            } else {
+                shooter.keepLauncherAtVelocity();
+            }
         }
         @Override
         public boolean isFinished() {
             return shooter.isLauncherAtVelocity();
+        }
+        @Override
+        public void end(boolean interrupted) {
+            if (interrupted) {
+                shooter.stop();
+            }
+        }
+    }
+
+    public class KeepShooterVelocity extends CommandBase {
+        private final Hardware.Shooter shooter;
+        private final double targetVelocity;
+
+        public KeepShooterVelocity(Hardware.Shooter subsystem, double targetVelocity) {
+            shooter = subsystem;
+            this.targetVelocity = targetVelocity;
+            addRequirements(shooter);
+        }
+        @Override
+        public void initialize() {
+            shooter.setLauncherVelocity(targetVelocity);
+        }
+        @Override
+        public void execute() {
+            if (targetVelocity == 0) {
+                shooter.stop();
+            } else {
+                shooter.keepLauncherAtVelocity();
+            }
         }
         @Override
         public void end(boolean interrupted) {
@@ -123,34 +156,39 @@ public class Commands {
             addRequirements(cameraFront, cameraBack, sorter);
         }
         @Override
-        public void initialize() {
+        public void execute() {
             Hardware.ArtifactType backDetected = cameraBack.detectColor();
             Hardware.ArtifactType frontDetected = cameraFront.detectColor();
 
             if (backDetected != Hardware.ArtifactType.NONE) {
-                sorter.updateServo(backDetected, true);
+                if (backDetected == Hardware.ArtifactType.PURPLE) {
+                    sorter.purple();
+                } else {
+                    sorter.green();
+                }
             } else if (frontDetected != Hardware.ArtifactType.NONE) {
-                sorter.updateServo(backDetected, false);
+                if (frontDetected == Hardware.ArtifactType.PURPLE) {
+                    sorter.green();
+                } else {
+                    sorter.purple();
+                }
             } else {
-                //add none here later
+                sorter.neutral();
             }
-        }
-        @Override
-        public boolean isFinished() {
-            return true;
         }
     }
 
     public class RunIntake extends ParallelCommandGroup {
-        public RunIntake(Hardware.Chute chuteRight, Hardware.Chute chuteLeft, Hardware.Intake intakeFront, Hardware.Intake intakeBack)
+        public RunIntake(Hardware.Chute chuteRight, Hardware.Chute chuteLeft, Hardware.Intake intakeFront, Hardware.Intake intakeBack, Hardware.Lock lock)
         {
             addCommands(
                     new SpinChute(chuteRight, false),
                     new SpinChute(chuteLeft, false),
                     new SpinIntake(intakeFront, false),
-                    new SpinIntake(intakeBack, false)
+                    new SpinIntake(intakeBack, false),
+                    new CloseLock(lock)
             );
-            addRequirements(chuteLeft, chuteRight, intakeBack, intakeFront);
+            addRequirements(chuteLeft, chuteRight, intakeBack, intakeFront, lock);
         }
 
     }
@@ -160,15 +198,16 @@ public class Commands {
         {
             addCommands(
                     new SetShooterVelocity(shooter, velocity),
-                    new ParallelCommandGroup(
-                            new SetShooterVelocity(shooter, velocity), //keep velocity at target
+                    new ParallelDeadlineGroup(
                             new ParallelDeadlineGroup(
-                                    new WaitCommand(5000), //probably replace this with waiting for a dip in velo?
+                                    new WaitCommand(2500), //probably replace this with waiting for a dip in velo?
                                     new SpinChute(chute, false),
                                     new OpenLock(lock)
-                            )
+                            ),
+                            new KeepShooterVelocity(shooter, velocity) //keep velocity at target
                     ),
-                    new CloseLock(lock)
+                    new CloseLock(lock),
+                    new SetShooterVelocity(shooter, 0)
             );
             addRequirements(shooter, chute, lock);
         }
