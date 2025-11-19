@@ -33,6 +33,7 @@ public class CommandDrive extends OpMode {
     private Follower follower;
     public static Pose startingPose; //See ExampleAuto to understand how to use this
     private boolean automatedDrive;
+    double pitchAngle = 0;
     private Supplier<PathChain> pathChain;
     private TelemetryManager telemetryM;
     private boolean slowMode = false;
@@ -44,10 +45,11 @@ public class CommandDrive extends OpMode {
     PIDFController headingPIDController = new PIDFController(new PIDFCoefficients(0, 0, 0, 0));
     static PIDFController launcherPidController = new PIDFController(new PIDFCoefficients(0.0002, 0, 0, 0));
     double headingError = 0;
+    double headingOffset = 0;
     double velocityError = 0;
     double thePowerForTheLauncher = 0;
     double targetVelocityPid = 0;
-    Hardware.Teams team;
+    Hardware.Teams team = Hardware.Teams.BLUE;
     Hardware robot;
     GamepadEx driverGamepad;
 
@@ -164,13 +166,14 @@ public class CommandDrive extends OpMode {
                         -gamepad1.left_stick_y,
                         -gamepad1.left_stick_x,
                         -gamepad1.right_stick_x * 0.7,
-                        false
+                        false,
+                        headingOffset
                 );
             }
         }
 
         if (gamepad1.yWasPressed()) {
-            follower.setPose(follower.getPose().withHeading(0));
+            headingOffset = follower.getHeading();
         }
 
         if (gamepad1.left_trigger > 0) {
@@ -180,6 +183,30 @@ public class CommandDrive extends OpMode {
             robot.shooterRight.launcherMotor.set(0);
         }
 
+        if (gamepad1.rightStickButtonWasPressed()) {
+            if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
+                robot.teamBlackboard.set(Hardware.Teams.BLUE);
+                team = Hardware.Teams.BLUE;
+                gamepad1.rumble(50);
+            } else {
+                robot.teamBlackboard.set(Hardware.Teams.RED);
+                team = Hardware.Teams.RED;
+                gamepad1.rumble(50);
+            }
+        }
+
+        if (gamepad1.xWasPressed()) {
+            headingLock = !headingLock;
+        }
+
+        if (gamepad1.dpad_left) {
+            pitchAngle++;
+        } else if (gamepad1.dpad_right) {
+            pitchAngle--;
+        }
+        robot.shooterRight.setPitchAngle(pitchAngle, true);
+        robot.shooterLeft.setPitchAngle(pitchAngle, false);
+
         CommandScheduler.getInstance().run();
 
 
@@ -188,9 +215,13 @@ public class CommandDrive extends OpMode {
 
 
 
-        telemetryM.debug("position", follower.getPose());
+        telemetry.addData("x", follower.getPose().getX());
+        telemetry.addData("y", follower.getPose().getY());
+        telemetry.addData("heading", follower.getPose().getHeading());
         telemetryM.addData("launcherPower", robot.shooterRight.launcherMotor.get());
         telemetryM.addData("launcherPower", robot.shooterRight.launcherMotor.getCorrectedVelocity());
+        telemetryM.addData("team", team);
+        telemetryM.addData("distance to team goal", Hardware.distanceToGoal(team, follower.getPose()));
         telemetryM.addData("launcher target power", thePowerForTheLauncher);
         telemetryM.addData("launcher error", velocityError);
 
@@ -203,14 +234,10 @@ public class CommandDrive extends OpMode {
     }
 
     void shoot(double targetPosition) {
-
-        velocityError = 1000 - robot.shooterRight.launcherMotor.getCorrectedVelocity();
-        launcherPidController.updateError(velocityError);
-        thePowerForTheLauncher = launcherPidController.run();
         if (robot.shooterRight.launcherMotor.getCorrectedVelocity() > targetPosition) {
             robot.shooterRight.launcherMotor.set(0.001);
             atVelTicks++;
-            if (atVelTicks > 25) {
+            if (atVelTicks > 5) {
                 robot.chuteRight.start();
                 robot.lock.open();
             }

@@ -228,8 +228,11 @@ public class Hardware {
         public double getPitchAngle() {
             return ((pitchServo.getAngle() - 195) / 195) * -17;
         }
-        public void setPitchAngle(double pitchToPoint) {
+        public void setPitchAngle(double pitchToPoint, boolean isInverted) {
             double clampedAngle = clamp(pitchToPoint, 0, 17);
+            if (isInverted) {
+                clampedAngle = 17 - clampedAngle;
+            }
             pitchServo.turnToAngle((clampedAngle / 17) * 195);
         }
     }
@@ -442,6 +445,17 @@ public class Hardware {
             return value;
         }
     }
+
+    public static double distanceToGoal(Teams team, Pose position) {
+        Pose poseToUse = team == Teams.BLUE ? new Pose(14, 130) : new Pose(130, 130);
+        return Math.sqrt(
+                Math.pow((position.getX() - poseToUse.getX()), 2)
+                        +
+                Math.pow((position.getY() - poseToUse.getY()), 2)
+        );
+    }
+
+
 
 
 }

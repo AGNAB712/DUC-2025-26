@@ -19,7 +19,7 @@ public class testauto extends OpMode {
     private Timer pathTimer, actionTimer, opmodeTimer;
 
     private int pathState;
-    private final Pose startPose = new Pose(28.5, 128, Math.toRadians(180)); // Start Pose of our robot.
+    private final Pose startPose = new Pose(24.5, 128, Math.toRadians(90)); // Start Pose of our robot.
     Hardware robot;
 
     /**
@@ -70,6 +70,7 @@ public class testauto extends OpMode {
         opmodeTimer.resetTimer();
 
         robot.endPositionBlackboard.set(follower.getPose());
+        robot.teamBlackboard.set(Hardware.Teams.RED);
     }
 
     /**

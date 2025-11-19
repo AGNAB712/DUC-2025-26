@@ -229,15 +229,15 @@ public class BasicDrive extends OpMode {
             if (targetPitch < 200) {
                 targetPitch = targetPitch + 5;
             }
-            robot.shooterRight.setPitchAngle(targetPitch);
-            robot.shooterLeft.setPitchAngle(targetPitch);
+            robot.shooterRight.setPitchAngle(targetPitch, true);
+            robot.shooterLeft.setPitchAngle(targetPitch, false);
         }
         if (gamepad1.dpad_left) {
             if (targetPitch > 0) {
                 targetPitch = targetPitch - 5;
             }
-            robot.shooterRight.setPitchAngle(targetPitch);
-            robot.shooterLeft.setPitchAngle(targetPitch);
+            robot.shooterRight.setPitchAngle(targetPitch, true);
+            robot.shooterLeft.setPitchAngle(targetPitch, true);
         }
 
 
