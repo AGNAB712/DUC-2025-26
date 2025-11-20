@@ -250,8 +250,6 @@ public class BasicDrive extends OpMode {
         telemetryM.debug("seq", robot.sequence);
         telemetryM.debug("detected front", detectedArtifactFront);
         telemetryM.debug("detected back", detectedArtifactBack);
-        telemetryM.debug("detected front", robot.intakeFront.colorSensor.getCamera());
-        telemetryM.debug("detected back", robot.intakeBack.colorSensor.getCamera());
         telemetryM.debug("automatedDrive", automatedDrive);
     }
 

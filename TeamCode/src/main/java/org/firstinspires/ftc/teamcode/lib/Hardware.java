@@ -6,6 +6,7 @@ import android.util.Size;
 
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.control.PIDFController;
+import com.qualcomm.hardware.dfrobot.HuskyLens;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 import com.seattlesolvers.solverslib.hardware.ServoEx;
@@ -21,6 +22,7 @@ import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifacts;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -28,6 +30,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Configurable
 public class Hardware {
@@ -92,8 +95,8 @@ public class Hardware {
         //1 backRight
         //2 shooterLeft
 
-        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(WebcamName.class, "Webcam 1"), false);
-        intakeBack = new Intake(new CRServo(hwMap, "intakeBack"), hwMap.get(WebcamName.class, "Webcam 2"), true);
+        intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(HuskyLens.class, "lensFront"), false);
+        intakeBack = new Intake(new CRServo(hwMap, "intakeBack"), hwMap.get(HuskyLens.class, "lensBack"), true);
 
         shooterRight = new Shooter(new SimpleServo(hwMap, "pitchRight", 0, 360), new MotorEx(hwMap, "shooterRight"), true);
         shooterLeft = new Shooter(new SimpleServo(hwMap, "pitchLeft", 0, 360), new MotorEx(hwMap, "shooterLeft"), false);
@@ -159,12 +162,12 @@ public class Hardware {
         public CRServo intakeContServo;
         public IntakeSensor colorSensor;
         public boolean isRotating;
-        public Intake(CRServo myServo, WebcamName webcam, boolean LiveViewContainerId) {
+        public Intake(CRServo myServo, HuskyLens cam, boolean LiveViewContainerId) {
             this.intakeContServo = myServo;
             this.isRotating = false;
             intakeContServo.setInverted(true);
             this.stop();
-            this.colorSensor = new IntakeSensor(webcam, LiveViewContainerId);
+            this.colorSensor = new IntakeSensor(cam, LiveViewContainerId);
         }
 
         public void setRotation(servoPositions newPosition) {
@@ -226,12 +229,12 @@ public class Hardware {
         }
 
         public double getPitchAngle() {
-            return ((pitchServo.getAngle() - 195) / 195) * -17;
+            return ((pitchServo.getAngle() - 195) / 195) * -20;
         }
         public void setPitchAngle(double pitchToPoint, boolean isInverted) {
-            double clampedAngle = clamp(pitchToPoint, 0, 17);
+            double clampedAngle = clamp(pitchToPoint, 0, 20);
             if (isInverted) {
-                clampedAngle = 17 - clampedAngle;
+                clampedAngle = 20 - clampedAngle;
             }
             pitchServo.turnToAngle((clampedAngle / 17) * 195);
         }
@@ -288,42 +291,39 @@ public class Hardware {
     //intake sensor class includes:
     //the webcam and processor for color + contour detection
     public class IntakeSensor extends SubsystemBase {
-        public ducProcessorArtifacts processor;
+        public HuskyLens huskyLens;
         public ArtifactType currentColor = ArtifactType.NONE;
         private int noneCount = 0;
         private final int noneThreshold = 15;
-        VisionPortal visionPortal;
 
-        public IntakeSensor(WebcamName webcam, boolean liveView) {
-            this.processor = new ducProcessorArtifacts();
-            //.setLiveViewContainerId(LiveViewContainerId)
-            visionPortal = new VisionPortal.Builder()
-                    .setCamera(webcam)
-                    .addProcessor(this.processor)
-                    .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
-                    //.setLiveViewContainerId(LiveViewContainerId)
-                    .enableLiveView(false)
-                    .setCameraResolution(new Size(160, 120))
-                    .build();
-            ;
-
-        }
-        public VisionPortal.CameraState getCamera() {
-            return visionPortal.getCameraState();
+        public IntakeSensor(HuskyLens cam, boolean liveView) {
+            huskyLens = cam;
+            Deadline rateLimit = new Deadline(1, TimeUnit.SECONDS);
+            rateLimit.expire();
+            huskyLens.selectAlgorithm(HuskyLens.Algorithm.COLOR_RECOGNITION);
         }
         public ArtifactType detectColor() {
-            double greenContourAmount = this.processor.getContourGreen();
-            double purpleContourAmount = this.processor.getContourPurple();
-            ArtifactType toReturn = ArtifactType.NONE;
-            if (greenContourAmount == 0 && purpleContourAmount == 0) {
-                toReturn = ArtifactType.NONE;
-            } else if (greenContourAmount > purpleContourAmount) {
-                toReturn = ArtifactType.GREEN;
-            } else if (purpleContourAmount > greenContourAmount) {
-                toReturn = ArtifactType.PURPLE;
+            int purpleSize = 0;
+            int greenSize = 0;
+            Hardware.ArtifactType artifactDetected = Hardware.ArtifactType.NONE;
+            HuskyLens.Block[] blocks = huskyLens.blocks();
+            for (int i = 0; i < blocks.length; i++) {
+                int area = (blocks[i].height * blocks[i].width);
+                if (area > 5000) {
+                    if (blocks[i].id == 1) {
+                        greenSize = greenSize + area;
+                    } else {
+                        purpleSize = purpleSize + area;
+                    }
+                }
+            }
+            if (greenSize > purpleSize) {
+                artifactDetected = Hardware.ArtifactType.GREEN;
+            } else if (greenSize < purpleSize) {
+                artifactDetected = Hardware.ArtifactType.PURPLE;
             }
 
-            return toReturn;
+            return artifactDetected;
         }
 
         public void trackColor(ArtifactType detectedColor) {

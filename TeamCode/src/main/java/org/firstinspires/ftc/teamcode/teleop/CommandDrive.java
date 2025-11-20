@@ -236,13 +236,17 @@ public class CommandDrive extends OpMode {
     void shoot(double targetPosition) {
         if (robot.shooterRight.launcherMotor.getCorrectedVelocity() > targetPosition) {
             robot.shooterRight.launcherMotor.set(0.001);
+        } else {
+            robot.shooterRight.launcherMotor.set(1);
+        }
+
+        if (robot.shooterRight.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
             atVelTicks++;
             if (atVelTicks > 5) {
                 robot.chuteRight.start();
                 robot.lock.open();
             }
         } else {
-            robot.shooterRight.launcherMotor.set(1);
             atVelTicks = 0;
         }
     }
