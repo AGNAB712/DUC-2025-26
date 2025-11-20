@@ -20,6 +20,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.seattlesolvers.solverslib.util.InterpLUT;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
@@ -28,6 +29,7 @@ import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifacts;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -64,6 +66,7 @@ public class Hardware {
     public enum servoPositions {
         ROTATING, STOPPED, REVERSED
     }
+
 
     public BlackboardObject teamBlackboard = new BlackboardObject("Team");
     public BlackboardObject sequenceBlackboard = new BlackboardObject("Artifact");
@@ -115,7 +118,28 @@ public class Hardware {
                 .build();*/
     }
 
-    public static class Chute extends SubsystemBase {
+    public static class VelocityLUT {
+        InterpLUT lut;
+        public VelocityLUT() {
+            lut = new InterpLUT();
+
+            lut.add(30, 1300);
+            lut.add(50, 1475);
+            lut.add(75, 1600);
+
+            lut.createLUT();
+        }
+
+        public double[] get(double distance) {
+            double angleToReturn = 0;
+            if (distance > 100) {
+                angleToReturn = 17;
+            }
+            return new double[]{lut.get(distance), angleToReturn};
+        }
+    }
+
+    public class Chute extends SubsystemBase {
         public CRServo spinny;
         public boolean isRotating = false;
 

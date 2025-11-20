@@ -51,6 +51,7 @@ public class CommandDrive extends OpMode {
     double targetVelocityPid = 0;
     Hardware.Teams team = Hardware.Teams.BLUE;
     Hardware robot;
+    Hardware.VelocityLUT velLUT = new Hardware.VelocityLUT();
     GamepadEx driverGamepad;
 
     @Override
@@ -94,19 +95,6 @@ public class CommandDrive extends OpMode {
                 driverGamepad, GamepadKeys.Button.B
         ).whenHeld(
                 commandsList.new DetectColorAndSort(robot.intakeBack.colorSensor, robot.intakeBack.colorSensor, robot.sorter)
-        );
-
-        class GamepadLeftTrigger extends Trigger {
-            @Override
-            public boolean get() {
-                return gamepad1.right_trigger > 0;
-            }
-        }
-
-        Trigger hold = new GamepadLeftTrigger().whenActive(
-                commandsList.new KeepShooterVelocity(robot.shooterRight, 1000)
-        ).whenInactive(
-                commandsList.new SetShooterVelocity(robot.shooterRight, 0)
         );
 
         Button lockButton = new GamepadButton(
@@ -176,11 +164,20 @@ public class CommandDrive extends OpMode {
             headingOffset = follower.getHeading();
         }
 
-        if (gamepad1.left_trigger > 0) {
-            shoot(targetVelocity);
+        if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
+            targetVelocity = velLUT.get(Hardware.distanceToGoal(team, follower.getPose()))[0];
+        }
 
+        if (gamepad1.left_trigger > 0) {
+            shoot(targetVelocity, false);
         } else {
             robot.shooterRight.launcherMotor.set(0);
+        }
+
+        if (gamepad1.right_trigger > 0) {
+            shoot(targetVelocity, true);
+        } else {
+            robot.shooterLeft.launcherMotor.set(0);
         }
 
         if (gamepad1.rightStickButtonWasPressed()) {
@@ -233,18 +230,34 @@ public class CommandDrive extends OpMode {
         robot.endPositionBlackboard.set(follower.getPose());
     }
 
-    void shoot(double targetPosition) {
-        if (robot.shooterRight.launcherMotor.getCorrectedVelocity() > targetPosition) {
-            robot.shooterRight.launcherMotor.set(0.001);
+    void shoot(double targetPosition, boolean isLeftSide) {
+        Hardware.Shooter shooter;
+        Hardware.Chute chute;
+        if (isLeftSide) {
+            shooter = robot.shooterLeft;
+            chute = robot.chuteLeft;
         } else {
-            robot.shooterRight.launcherMotor.set(1);
+            shooter = robot.shooterRight;
+            chute = robot.chuteRight;
         }
 
-        if (robot.shooterRight.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
+
+        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
+            shooter.launcherMotor.set(0.001);
+        } else {
+            shooter.launcherMotor.set(1);
+        }
+
+        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
             atVelTicks++;
             if (atVelTicks > 5) {
-                robot.chuteRight.start();
+                chute.start();
                 robot.lock.open();
+                if (isLeftSide) {
+                    gamepad1.setLedColor(0, 1, 0, 500);
+                } else {
+                    gamepad1.setLedColor(0.5, 0, 0.5, 500);
+                }
             }
         } else {
             atVelTicks = 0;
