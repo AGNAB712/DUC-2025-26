@@ -122,10 +122,13 @@ public class Hardware {
         InterpLUT lut;
         public VelocityLUT() {
             lut = new InterpLUT();
-
-            lut.add(30, 1300);
-            lut.add(50, 1475);
-            lut.add(75, 1600);
+            lut.add(-1000, 1299);
+            lut.add(29, 1300);
+            lut.add(49, 1475);
+            lut.add(74, 1600);
+            lut.add(111, 1900);
+            lut.add(123, 1910);
+            lut.add(1000, 1951);
 
             lut.createLUT();
         }
