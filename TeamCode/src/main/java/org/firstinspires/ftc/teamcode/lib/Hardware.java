@@ -9,6 +9,7 @@ import com.pedropathing.control.PIDFController;
 import com.qualcomm.hardware.dfrobot.HuskyLens;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
+import com.seattlesolvers.solverslib.geometry.Vector2d;
 import com.seattlesolvers.solverslib.hardware.ServoEx;
 import com.seattlesolvers.solverslib.hardware.SimpleServo;
 import com.seattlesolvers.solverslib.hardware.motors.CRServo;
@@ -66,6 +67,12 @@ public class Hardware {
     public enum servoPositions {
         ROTATING, STOPPED, REVERSED
     }
+    public Point[] pointsInBigTriangle = new Point[]{
+            new Point(0, 144), new Point(144, 144), new Point(72, 72)
+    };
+    public Point[] pointsInSmallTriangle = new Point[]{
+            new Point(0, 144), new Point(144, 144), new Point(72, 72)
+    };
 
 
     public BlackboardObject teamBlackboard = new BlackboardObject("Team");
@@ -332,7 +339,7 @@ public class Hardware {
         public ArtifactType detectColor() {
             int purpleSize = 0;
             int greenSize = 0;
-            Hardware.ArtifactType artifactDetected = Hardware.ArtifactType.NONE;
+            ArtifactType artifactDetected = ArtifactType.NONE;
             HuskyLens.Block[] blocks = huskyLens.blocks();
             for (int i = 0; i < blocks.length; i++) {
                 int area = (blocks[i].height * blocks[i].width);
@@ -345,9 +352,9 @@ public class Hardware {
                 }
             }
             if (greenSize > purpleSize) {
-                artifactDetected = Hardware.ArtifactType.GREEN;
+                artifactDetected = ArtifactType.GREEN;
             } else if (greenSize < purpleSize) {
-                artifactDetected = Hardware.ArtifactType.PURPLE;
+                artifactDetected = ArtifactType.PURPLE;
             }
 
             return artifactDetected;
@@ -480,6 +487,107 @@ public class Hardware {
                         +
                 Math.pow((position.getY() - poseToUse.getY()), 2)
         );
+    }
+
+
+
+    public Point[] rotateSquare(double centerX, double centerY, double heading) {
+
+        Point[] originalVertices = new Point[] {
+                new Point(centerX - 9, centerY - 9),
+                new Point(centerX + 9, centerY - 9),
+                new Point(centerX + 9, centerY + 9),
+                new Point(centerX - 9, centerY + 9)
+        };
+
+        double cosineOfAngle = Math.cos(heading);
+        double sineOfAngle = Math.sin(heading);
+
+        Point[] rotatedVertices = new Point[4];
+
+        for (int i = 0; i < 4; i++) {
+            double translatedX = originalVertices[i].x - centerX;
+            double translatedY = originalVertices[i].y - centerY;
+
+            double rotatedX = translatedX * cosineOfAngle - translatedY * sineOfAngle;
+            double rotatedY = translatedX * sineOfAngle + translatedY * cosineOfAngle;
+
+            double finalX = rotatedX + centerX;
+            double finalY = rotatedY + centerY;
+
+            rotatedVertices[i] = new Point(finalX, finalY);
+        }
+
+        return rotatedVertices;
+    }
+
+    class Point {
+        public double x;
+        public double y;
+        public Point(double x, double y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    public boolean isInTriangle(Pose position) {
+        //there are simpler ways to do this but i wanted to do this cause its cool
+        double botX = position.getX();
+        double botY = position.getY();
+        double botHeading = position.getHeading();
+        boolean isColliding;
+        Point[] pointsOnBot = rotateSquare(botX, botY, botHeading);
+
+
+        for (int i =0; i < pointsOnBot.length; i++) {
+            Point point0 = pointsOnBot[i];
+            Point point1 = getNextPoint(pointsOnBot, i);
+
+            double edgeX = point1.x - point0.x; //getting the normal of the edge's slope so we can project
+            double edgeY = point1.y - point0.y; //the points onto the normal so we can get the mins and maxes and compare them :   )
+
+            Vector2d normal = new Vector2d(-edgeY, edgeX);
+            Vector2d unitNormal = new Vector2d(normal.getX()/normal.magnitude(), normal.getY()/normal.magnitude());
+
+            double[] projectedRobot = getProjectedValuesFromList(pointsOnBot, unitNormal);
+            double[] projectedBigTriangle = getProjectedValuesFromList(pointsInBigTriangle, unitNormal);
+            double[] projectedSmallTriangle = getProjectedValuesFromList(pointsInSmallTriangle, unitNormal);
+
+            if (projectedRobot[1] < projectedBigTriangle[0] || projectedBigTriangle[1] < projectedRobot[0]) {
+                return false;
+            }
+            if (projectedRobot[1] < projectedSmallTriangle[0] || projectedSmallTriangle[1] < projectedRobot[0]) {
+                return false;
+            }
+
+
+        }
+
+        return true;
+    }
+
+    Point getNextPoint(Point[] pointsList, int i) {
+        Point nextPoint;
+        if (i == pointsList.length-1) {
+            nextPoint = pointsList[0];
+        } else {
+            nextPoint = pointsList[i+1];
+        }
+        return nextPoint;
+    }
+
+    double[] getProjectedValuesFromList(Point[] listOfPointsToProject, Vector2d vectorToProject) {
+        double min = Double.POSITIVE_INFINITY;
+        double max = Double.NEGATIVE_INFINITY;
+
+        for (int i = 0; i < listOfPointsToProject.length; i++) {
+            Point pointToTest = listOfPointsToProject[i];
+            double projectedValue = vectorToProject.dot(new Vector2d(pointToTest.x, pointToTest.y));
+
+            if (projectedValue < min) min = projectedValue;
+            if (projectedValue > max) max = projectedValue;
+        }
+        return new double[]{min, max};
     }
 
 

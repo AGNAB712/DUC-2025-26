@@ -235,6 +235,7 @@ public class CommandDrive extends OpMode {
         telemetryM.addData("launcherPower", robot.shooterRight.launcherMotor.getCorrectedVelocity());
         telemetryM.addData("team", team);
         telemetryM.addData("distance to team goal", Hardware.distanceToGoal(team, follower.getPose()));
+        telemetryM.addData("is in shooting area?", robot.isInTriangle(follower.getPose()));
         telemetryM.addData("launcher target power", thePowerForTheLauncher);
         telemetryM.addData("launcher error", velocityError);
 
