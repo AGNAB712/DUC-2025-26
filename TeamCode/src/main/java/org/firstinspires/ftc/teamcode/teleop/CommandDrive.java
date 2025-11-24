@@ -55,6 +55,8 @@ public class CommandDrive extends OpMode {
     private Supplier<PathChain> toBlueBase;
     boolean rightShooterKeepAtVelocity = false;
     boolean leftShooterKeepAtVelocity = false;
+    double lastVelocityLeft = 0;
+    double lastVelocityRight = 0;
 
     @Override
     public void init() {
@@ -247,13 +249,11 @@ public class CommandDrive extends OpMode {
         telemetry.addData("x", follower.getPose().getX());
         telemetry.addData("y", follower.getPose().getY());
         telemetry.addData("heading", follower.getPose().getHeading());
-        telemetryM.addData("launcherPower", robot.shooterRight.launcherMotor.get());
-        telemetryM.addData("launcherPower", robot.shooterRight.launcherMotor.getCorrectedVelocity());
         telemetryM.addData("team", team);
+        telemetryM.addData("launcherPower", new double[]{robot.shooterRight.launcherMotor.getCorrectedVelocity(), robot.shooterLeft.launcherMotor.getCorrectedVelocity()});
+        telemetryM.addData("launcher target vel", targetVelocity);
         telemetryM.addData("distance to team goal", Hardware.distanceToGoal(team, follower.getPose()));
         telemetryM.addData("is in shooting area?", robot.isInTriangle(follower.getPose()));
-        telemetryM.addData("launcher target power", thePowerForTheLauncher);
-        telemetryM.addData("launcher error", velocityError);
 
         telemetryM.update(telemetry);
     }
@@ -278,9 +278,10 @@ public class CommandDrive extends OpMode {
         keepShooterAtVelocity(shooter, targetVelocity);
 
 
-        if (shooter.launcherMotor.getCorrectedVelocity() < targetPosition - 200) {
+        if (shooter.launcherMotor.getCorrectedVelocity() < (isLeftSide ? lastVelocityLeft : lastVelocityRight)) {
             robot.lock.close();
             chute.stop();
+            gamepad1.rumble(500);
         }
 
         if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
@@ -297,6 +298,9 @@ public class CommandDrive extends OpMode {
         } else {
             atVelTicks = 0;
         }
+
+        lastVelocityLeft = robot.shooterLeft.launcherMotor.getCorrectedVelocity();
+        lastVelocityRight =robot.shooterRight.launcherMotor.getCorrectedVelocity();
     }
     void keepShooterAtVelocity(Hardware.Shooter shooter, double targetPosition) {
         if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
