@@ -53,6 +53,8 @@ public class CommandDrive extends OpMode {
     GamepadEx driverGamepad;
     private Supplier<PathChain> toRedBase;
     private Supplier<PathChain> toBlueBase;
+    boolean rightShooterKeepAtVelocity = false;
+    boolean leftShooterKeepAtVelocity = false;
 
     @Override
     public void init() {
@@ -161,13 +163,27 @@ public class CommandDrive extends OpMode {
         if (gamepad1.right_trigger > 0) {
             shoot(targetVelocity, targetAngle, false);
         } else {
-            robot.shooterRight.launcherMotor.set(0);
+            if (rightShooterKeepAtVelocity) {
+                keepShooterAtVelocity(robot.shooterRight, 1000);
+            } else {
+                robot.shooterRight.launcherMotor.set(0);
+            }
         }
 
         if (gamepad1.left_trigger > 0) {
             shoot(targetVelocity, targetAngle, true);
         } else {
-            robot.shooterLeft.launcherMotor.set(0);
+            if (leftShooterKeepAtVelocity) {
+                keepShooterAtVelocity(robot.shooterLeft, 1000);
+            } else {
+                robot.shooterLeft.launcherMotor.set(0);
+            }
+        }
+        if (gamepad1.leftBumperWasPressed()) {
+            leftShooterKeepAtVelocity = !leftShooterKeepAtVelocity;
+        }
+        if (gamepad1.rightBumperWasPressed()) {
+            rightShooterKeepAtVelocity = !rightShooterKeepAtVelocity;
         }
 
         if (gamepad1.rightStickButtonWasPressed()) {
@@ -259,16 +275,12 @@ public class CommandDrive extends OpMode {
         }
 
         shooter.setPitchAngle(targetAngle, isLeftSide);
+        keepShooterAtVelocity(shooter, targetVelocity);
 
 
-        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
-            shooter.launcherMotor.set(0.001);
-        } else {
-            shooter.launcherMotor.set(1);
-            if (shooter.launcherMotor.getCorrectedVelocity() < targetPosition - 200) {
-                robot.lock.close();
-                chute.stop();
-            }
+        if (shooter.launcherMotor.getCorrectedVelocity() < targetPosition - 200) {
+            robot.lock.close();
+            chute.stop();
         }
 
         if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
@@ -284,6 +296,13 @@ public class CommandDrive extends OpMode {
             }
         } else {
             atVelTicks = 0;
+        }
+    }
+    void keepShooterAtVelocity(Hardware.Shooter shooter, double targetPosition) {
+        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
+            shooter.launcherMotor.set(0.001);
+        } else {
+            shooter.launcherMotor.set(1);
         }
     }
 }
