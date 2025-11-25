@@ -69,7 +69,7 @@ public class testauto extends OpMode {
     public void start() {
         opmodeTimer.resetTimer();
 
-        robot.endPositionBlackboard.set(follower.getPose());
+        robot.endPositionBlackboard.set(startPose);
         robot.teamBlackboard.set(Hardware.Teams.RED);
     }
 

@@ -71,7 +71,13 @@ public class Hardware {
             new Point(0, 144), new Point(144, 144), new Point(72, 72)
     };
     public Point[] pointsInSmallTriangle = new Point[]{
-            new Point(0, 144), new Point(144, 144), new Point(72, 72)
+            new Point(50, 0), new Point(72, 22), new Point(95, 0)
+    };
+    public Point[] pointsInDangerZoneRed = new Point[]{
+            new Point(143, 77), new Point(132, 77), new Point(143, 65), new Point(132, 65)
+    };
+    public Point[] pointsInDangerZoneBlue = new Point[]{
+            new Point(0, 77), new Point(12, 77), new Point(0, 65), new Point(12, 65)
     };
 
 
@@ -553,10 +559,45 @@ public class Hardware {
             double[] projectedBigTriangle = getProjectedValuesFromList(pointsInBigTriangle, unitNormal);
             double[] projectedSmallTriangle = getProjectedValuesFromList(pointsInSmallTriangle, unitNormal);
 
-            if (projectedRobot[1] < projectedBigTriangle[0] || projectedBigTriangle[1] < projectedRobot[0]) {
+            if ((projectedRobot[1] < projectedBigTriangle[0] || projectedBigTriangle[1] < projectedRobot[0]) &&
+                (projectedRobot[1] < projectedSmallTriangle[0] || projectedSmallTriangle[1] < projectedRobot[0]))
+            {
                 return false;
             }
-            if (projectedRobot[1] < projectedSmallTriangle[0] || projectedSmallTriangle[1] < projectedRobot[0]) {
+
+
+        }
+
+        return true;
+    }
+
+    public boolean isInDangerZone(Pose position, Teams team) {
+        //there are simpler ways to do this but i wanted to do this cause its cool
+        double botX = position.getX();
+        double botY = position.getY();
+        double botHeading = position.getHeading();
+        boolean isColliding;
+        Point[] pointsOnBot = rotateSquare(botX, botY, botHeading);
+
+
+        for (int i =0; i < pointsOnBot.length; i++) {
+            Point point0 = pointsOnBot[i];
+            Point point1 = getNextPoint(pointsOnBot, i);
+
+            double edgeX = point1.x - point0.x; //getting the normal of the edge's slope so we can project
+            double edgeY = point1.y - point0.y; //the points onto the normal so we can get the mins and maxes and compare them :   )
+
+            Vector2d normal = new Vector2d(-edgeY, edgeX);
+            Vector2d unitNormal = new Vector2d(normal.getX()/normal.magnitude(), normal.getY()/normal.magnitude());
+
+            double[] projectedRobot = getProjectedValuesFromList(pointsOnBot, unitNormal);
+            double[] projectedRedDanger = getProjectedValuesFromList(pointsInDangerZoneRed, unitNormal);
+            double[] projectedBlueDanger = getProjectedValuesFromList(pointsInDangerZoneBlue, unitNormal);
+
+            if ((projectedRobot[1] < projectedRedDanger[0] || projectedRedDanger[1] < projectedRobot[0]) && team == Teams.BLUE) {
+                return false;
+            }
+            if ((projectedRobot[1] < projectedBlueDanger[0] || projectedBlueDanger[1] < projectedRobot[0]) && team == Teams.RED) {
                 return false;
             }
 

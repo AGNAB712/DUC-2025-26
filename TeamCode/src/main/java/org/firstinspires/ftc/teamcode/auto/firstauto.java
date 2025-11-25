@@ -195,6 +195,7 @@ public class firstauto extends OpMode {
      **/
     @Override
     public void stop() {
+        robot.endPositionBlackboard.set(follower.getPose());
     }
 
 }

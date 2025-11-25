@@ -47,6 +47,7 @@ public class CommandDrive extends OpMode {
     double headingOffset = 0;
     double velocityError = 0;
     double thePowerForTheLauncher = 0;
+    boolean isIntaking = false;
     Hardware.Teams team = Hardware.Teams.BLUE;
     Hardware robot;
     Hardware.VelocityLUT velLUT = new Hardware.VelocityLUT();
@@ -155,6 +156,27 @@ public class CommandDrive extends OpMode {
         if (gamepad1.yWasPressed()) {
             headingOffset = follower.getHeading();
         }
+        if (gamepad1.aWasPressed()) {
+            isIntaking = !isIntaking;
+        }
+        if (isIntaking) {
+            if (gamepad1.dpad_down) {
+                robot.chuteLeft.reverse();
+                robot.chuteRight.reverse();
+                robot.intakeFront.reverse();
+                robot.intakeBack.reverse();
+            } else {
+                robot.chuteLeft.start();
+                robot.chuteRight.start();
+                robot.intakeFront.start();
+                robot.intakeBack.start();
+            }
+        } else {
+            robot.chuteLeft.stop();
+            robot.chuteRight.stop();
+            robot.intakeFront.stop();
+            robot.intakeBack.stop();
+        }
 
         if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
             double[] velLutOutput = velLUT.get(Hardware.distanceToGoal(team, follower.getPose()));
@@ -240,7 +262,9 @@ public class CommandDrive extends OpMode {
 
         CommandScheduler.getInstance().run();
 
-
+        if (robot.isInDangerZone(follower.getPose(), team)) {
+            gamepad1.rumble(100);
+        }
 
 
 
@@ -250,10 +274,12 @@ public class CommandDrive extends OpMode {
         telemetry.addData("y", follower.getPose().getY());
         telemetry.addData("heading", follower.getPose().getHeading());
         telemetryM.addData("team", team);
-        telemetryM.addData("launcherPower", new double[]{robot.shooterRight.launcherMotor.getCorrectedVelocity(), robot.shooterLeft.launcherMotor.getCorrectedVelocity()});
+        telemetryM.addData("launcherPower right", robot.shooterRight.launcherMotor.getCorrectedVelocity());
+        telemetryM.addData("launcherPower left", robot.shooterLeft.launcherMotor.getCorrectedVelocity());
         telemetryM.addData("launcher target vel", targetVelocity);
         telemetryM.addData("distance to team goal", Hardware.distanceToGoal(team, follower.getPose()));
         telemetryM.addData("is in shooting area?", robot.isInTriangle(follower.getPose()));
+        telemetryM.addData("is in danger zone?", robot.isInDangerZone(follower.getPose(), team));
 
         telemetryM.update(telemetry);
     }
