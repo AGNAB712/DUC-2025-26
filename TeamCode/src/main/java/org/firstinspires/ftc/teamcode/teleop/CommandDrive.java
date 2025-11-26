@@ -177,6 +177,11 @@ public class CommandDrive extends OpMode {
             robot.intakeFront.stop();
             robot.intakeBack.stop();
         }
+        if (gamepad1.dpadLeftWasPressed()) {
+            robot.visionPortal.stopStreaming();
+        } else if (gamepad1.dpadRightWasPressed()) {
+            robot.visionPortal.resumeStreaming();
+        }
 
         if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
             double[] velLutOutput = velLUT.get(Hardware.distanceToGoal(team, follower.getPose()));
@@ -273,6 +278,7 @@ public class CommandDrive extends OpMode {
         telemetry.addData("x", follower.getPose().getX());
         telemetry.addData("y", follower.getPose().getY());
         telemetry.addData("heading", follower.getPose().getHeading());
+        robot.telemetryAprilTag(telemetry);
         telemetryM.addData("team", team);
         telemetryM.addData("launcherPower right", robot.shooterRight.launcherMotor.getCorrectedVelocity());
         telemetryM.addData("launcherPower left", robot.shooterLeft.launcherMotor.getCorrectedVelocity());
