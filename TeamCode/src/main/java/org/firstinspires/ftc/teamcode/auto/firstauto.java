@@ -22,6 +22,12 @@ public class firstauto extends OpMode {
     private int pathState;
     public Hardware robot;
     public BluePath pathMaster;
+    static double targetVelocity = 1500;
+    double lastVelocityLeft = 0;
+    double lastVelocityRight = 0;
+    double atVelTicks = 0;
+    boolean leftHasShot = false;
+    boolean rightHasShot = false;
 
     public void buildPaths() {
         pathMaster = new BluePath(follower);
@@ -31,7 +37,13 @@ public class firstauto extends OpMode {
         switch (pathState) {
             case 0:
                 follower.followPath(pathMaster.StartToShoot);
-                setPathState(1);
+                setPathState(100);
+                break;
+            case 100:
+                shoot(1300, 0, true);
+                if (leftHasShot) {
+                    setPathState(1);
+                }
                 break;
             case 1:
                 if (!follower.isBusy()) {
@@ -190,12 +202,59 @@ public class firstauto extends OpMode {
         setPathState(0);
     }
 
-    /**
-     * We do not use this because everything should automatically disable
-     **/
     @Override
     public void stop() {
         robot.endPositionBlackboard.set(follower.getPose());
+    }
+
+    void shoot(double targetPosition, double targetAngle, boolean isLeftSide) {
+        Hardware.Shooter shooter;
+        Hardware.Chute chute;
+        if (isLeftSide) {
+            shooter = robot.shooterLeft;
+            chute = robot.chuteLeft;
+        } else {
+            shooter = robot.shooterRight;
+            chute = robot.chuteRight;
+        }
+
+        shooter.setPitchAngle(targetAngle, isLeftSide);
+        keepShooterAtVelocity(shooter, targetVelocity);
+
+
+        if (shooter.launcherMotor.getCorrectedVelocity() < (isLeftSide ? lastVelocityLeft : lastVelocityRight)) {
+            robot.lock.close();
+            chute.stop();
+            if (isLeftSide) {leftHasShot = true;} else {rightHasShot = true;}
+            gamepad1.rumble(500);
+        } else {
+            if (isLeftSide) {leftHasShot = false;} else {rightHasShot = false;}
+        }
+
+        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
+            atVelTicks++;
+            if (atVelTicks > 10) {
+                chute.start();
+                robot.lock.open();
+                if (isLeftSide) {
+                    gamepad1.setLedColor(0, 1, 0, 500);
+                } else {
+                    gamepad1.setLedColor(0.5, 0, 0.5, 500);
+                }
+            }
+        } else {
+            atVelTicks = 0;
+        }
+
+        lastVelocityLeft = robot.shooterLeft.launcherMotor.getCorrectedVelocity();
+        lastVelocityRight =robot.shooterRight.launcherMotor.getCorrectedVelocity();
+    }
+    void keepShooterAtVelocity(Hardware.Shooter shooter, double targetPosition) {
+        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
+            shooter.launcherMotor.set(0.001);
+        } else {
+            shooter.launcherMotor.set(1);
+        }
     }
 
 }

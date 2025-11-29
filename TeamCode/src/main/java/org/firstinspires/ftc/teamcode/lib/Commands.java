@@ -162,15 +162,15 @@ public class Commands {
 
             if (backDetected != Hardware.ArtifactType.NONE) {
                 if (backDetected == Hardware.ArtifactType.PURPLE) {
-                    sorter.purple();
+                    sorter.purple(true);
                 } else {
-                    sorter.green();
+                    sorter.green(true);
                 }
             } else if (frontDetected != Hardware.ArtifactType.NONE) {
                 if (frontDetected == Hardware.ArtifactType.PURPLE) {
-                    sorter.green();
+                    sorter.green(true);
                 } else {
-                    sorter.purple();
+                    sorter.purple(true);
                 }
             } else {
                 sorter.neutral();

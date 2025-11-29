@@ -121,11 +121,13 @@ public class Hardware {
         chuteRight = new Chute(new CRServo(hwMap, "rightChute"));
         chuteLeft = new Chute(new CRServo(hwMap, "leftChute"));
 
-        lock = new Lock(new SimpleServo(hwMap, "lock", 0, 180));
-        sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 180));
+        lock = new Lock(new SimpleServo(hwMap, "lock", 0, 360));
+        sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 360));
+
+        aprilTag = AprilTagProcessor.easyCreateWithDefaults();
 
         VisionPortal visionPortal = new VisionPortal.Builder()
-                .setCamera(hwMap.get(WebcamName.class, "Webcam 3"))
+                .setCamera(hwMap.get(WebcamName.class, "Webcam 1"))
                 .addProcessor(aprilTag)
                 .build();
     }
@@ -284,9 +286,9 @@ public class Hardware {
     //the sorter servo
     public static class Sorter extends SubsystemBase {
         public ServoEx sorterServo;
-        public double greenPosition = 60;
-        public double purplePosition = 110;
-        public double neutralPosition = 90;
+        public double[] greenPositions = new double[]{0, 345};
+        public double[] purplePositions = new double[]{110, 245};
+        public double[] neutralPositions = new double[]{55, 290};
         private int noneCount = 0;
         private final int noneThreshold = 15;
         public ArtifactType currentColor = ArtifactType.NONE;
@@ -314,16 +316,20 @@ public class Hardware {
 
 
             if (currentColor == ArtifactType.GREEN) {
-                if (isInverted) {this.purple();} else {this.green();}
+                if (isInverted) {this.purple(isInverted);} else {this.green(isInverted);}
             } else if (currentColor == ArtifactType.PURPLE) {
-                if (isInverted) {this.green();} else {this.purple();}
+                if (isInverted) {this.green(isInverted);} else {this.purple(isInverted);}
             } else {
                 this.neutral();
             }
         }
-        public void green() {this.sorterServo.turnToAngle(greenPosition);}
-        public void purple() {this.sorterServo.turnToAngle(purplePosition);}
-        public void neutral() {this.sorterServo.turnToAngle(neutralPosition);}
+        public void green(boolean inverted) {
+            this.sorterServo.turnToAngle(inverted ? purplePositions[0] : purplePositions[0]);
+        }
+        public void purple(boolean inverted) {
+            this.sorterServo.turnToAngle(inverted ? greenPositions[0] : greenPositions[0]);
+        }
+        public void neutral() {this.sorterServo.turnToAngle(neutralPositions[0]);}
     }
 
     //INTAKE SENSOR

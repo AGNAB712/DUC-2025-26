@@ -58,6 +58,7 @@ public class CommandDrive extends OpMode {
     boolean leftShooterKeepAtVelocity = false;
     double lastVelocityLeft = 0;
     double lastVelocityRight = 0;
+    double sorterTargetAngle = 0;
 
     @Override
     public void init() {
@@ -178,9 +179,11 @@ public class CommandDrive extends OpMode {
             robot.intakeBack.stop();
         }
         if (gamepad1.dpadLeftWasPressed()) {
-            robot.visionPortal.stopStreaming();
+            sorterTargetAngle = sorterTargetAngle + 5;
+            robot.lock.chuteLock.turnToAngle(sorterTargetAngle);
         } else if (gamepad1.dpadRightWasPressed()) {
-            robot.visionPortal.resumeStreaming();
+            sorterTargetAngle = sorterTargetAngle - 5;
+            robot.lock.chuteLock.turnToAngle(sorterTargetAngle);
         }
 
         if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
@@ -253,7 +256,7 @@ public class CommandDrive extends OpMode {
         //robot.shooterRight.setPitchAngle(pitchAngle, true);
         //robot.shooterLeft.setPitchAngle(pitchAngle, false);
 
-        if (robot.intakeFront.isRotating) {
+        if (robot.intakeFront.isRotating || gamepad1.dpad_up) {
             Hardware.ArtifactType detectedFront = robot.intakeFront.colorSensor.detectColor();
             Hardware.ArtifactType detectedBack = robot.intakeBack.colorSensor.detectColor();
             telemetryM.addData("dfront", detectedFront);
@@ -262,6 +265,8 @@ public class CommandDrive extends OpMode {
                 robot.sorter.updateServo(detectedFront, false);
             } else if (detectedBack != Hardware.ArtifactType.NONE) {
                 robot.sorter.updateServo(detectedBack, true);
+            } else {
+                robot.sorter.updateServo(Hardware.ArtifactType.NONE, false);
             }
         }
 
@@ -283,6 +288,7 @@ public class CommandDrive extends OpMode {
         telemetryM.addData("launcherPower right", robot.shooterRight.launcherMotor.getCorrectedVelocity());
         telemetryM.addData("launcherPower left", robot.shooterLeft.launcherMotor.getCorrectedVelocity());
         telemetryM.addData("launcher target vel", targetVelocity);
+        telemetryM.addData("sorter servo angle", sorterTargetAngle);
         telemetryM.addData("distance to team goal", Hardware.distanceToGoal(team, follower.getPose()));
         telemetryM.addData("is in shooting area?", robot.isInTriangle(follower.getPose()));
         telemetryM.addData("is in danger zone?", robot.isInDangerZone(follower.getPose(), team));

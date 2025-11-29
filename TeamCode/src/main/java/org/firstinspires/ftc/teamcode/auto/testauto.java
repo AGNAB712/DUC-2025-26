@@ -80,4 +80,6 @@ public class testauto extends OpMode {
     public void stop() {
         robot.endPositionBlackboard.set(follower.getPose());
     }
+
+
 }
