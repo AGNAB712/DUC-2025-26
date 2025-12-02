@@ -59,6 +59,7 @@ public class CommandDrive extends OpMode {
     double lastVelocityLeft = 0;
     double lastVelocityRight = 0;
     double sorterTargetAngle = 0;
+    double maxJumpInShooterVelo = 0;
 
     @Override
     public void init() {
@@ -217,7 +218,7 @@ public class CommandDrive extends OpMode {
         if (gamepad1.rightBumperWasPressed()) {
             rightShooterKeepAtVelocity = !rightShooterKeepAtVelocity;
         }
-
+        
         if (gamepad1.rightStickButtonWasPressed()) {
             if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
                 robot.teamBlackboard.set(Hardware.Teams.BLUE);
@@ -287,6 +288,7 @@ public class CommandDrive extends OpMode {
         telemetryM.addData("team", team);
         telemetryM.addData("launcherPower right", robot.shooterRight.launcherMotor.getCorrectedVelocity());
         telemetryM.addData("launcherPower left", robot.shooterLeft.launcherMotor.getCorrectedVelocity());
+        telemetryM.addData("max jump in shooter velocity", maxJumpInShooterVelo);
         telemetryM.addData("launcher target vel", targetVelocity);
         telemetryM.addData("sorter servo angle", sorterTargetAngle);
         telemetryM.addData("distance to team goal", Hardware.distanceToGoal(team, follower.getPose()));
@@ -315,8 +317,12 @@ public class CommandDrive extends OpMode {
         shooter.setPitchAngle(targetAngle, isLeftSide);
         keepShooterAtVelocity(shooter, targetVelocity);
 
+        double distanceFromLastVeloToCurrentVelo = shooter.launcherMotor.getCorrectedVelocity() - (isLeftSide ? lastVelocityLeft : lastVelocityRight);
+        if (distanceFromLastVeloToCurrentVelo < maxJumpInShooterVelo) {
+            maxJumpInShooterVelo = distanceFromLastVeloToCurrentVelo;
+        }
 
-        if (shooter.launcherMotor.getCorrectedVelocity() < (isLeftSide ? lastVelocityLeft : lastVelocityRight)) {
+        if (distanceFromLastVeloToCurrentVelo < -80) {
             robot.lock.close();
             chute.stop();
             gamepad1.rumble(500);

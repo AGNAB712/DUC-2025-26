@@ -1,20 +1,16 @@
-package org.firstinspires.ftc.teamcode.auto;
+package org.firstinspires.ftc.teamcode.auto.path_noGate;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.auto.path_noGate.BluePath;
 import org.firstinspires.ftc.teamcode.lib.Hardware;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous(name = "L1 auto", group = "auto")
-public class firstauto extends OpMode {
+@Autonomous(name = "BlueFarNoGate", group = "nogate")
+public class BlueNoGate extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
@@ -119,7 +115,7 @@ public class firstauto extends OpMode {
                     robot.intakeBack.stop();
                     robot.chuteRight.stop();
                     robot.chuteLeft.stop();
-                    follower.followPath(pathMaster.LThreeToFarShoot, true);
+                    follower.followPath(pathMaster.LThreeToCloseShoot, true);
                     setPathState(10);
                 }
                 break;
@@ -221,8 +217,9 @@ public class firstauto extends OpMode {
         shooter.setPitchAngle(targetAngle, isLeftSide);
         keepShooterAtVelocity(shooter, targetVelocity);
 
+        double distanceFromLastVeloToCurrentVelo = shooter.launcherMotor.getCorrectedVelocity() - (isLeftSide ? lastVelocityLeft : lastVelocityRight);
 
-        if (shooter.launcherMotor.getCorrectedVelocity() < (isLeftSide ? lastVelocityLeft : lastVelocityRight)) {
+        if (distanceFromLastVeloToCurrentVelo < -80) {
             robot.lock.close();
             chute.stop();
             if (isLeftSide) {leftHasShot = true;} else {rightHasShot = true;}
