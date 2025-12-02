@@ -39,7 +39,8 @@ public class CommandDrive extends OpMode {
     private boolean slowMode = false;
     static boolean headingLock = false;
     double targetHeading = Math.toRadians(90);
-    double atVelTicks = 0;
+    double leftAtVelTicks = 0;
+    double rightAtVelTicks = 0;
     static double targetVelocity = 1500;
     static double targetAngle = 1500;
     PIDFController headingPIDController = new PIDFController(new PIDFCoefficients(0, 0, 0, 0));
@@ -218,7 +219,7 @@ public class CommandDrive extends OpMode {
         if (gamepad1.rightBumperWasPressed()) {
             rightShooterKeepAtVelocity = !rightShooterKeepAtVelocity;
         }
-        
+
         if (gamepad1.rightStickButtonWasPressed()) {
             if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
                 robot.teamBlackboard.set(Hardware.Teams.BLUE);
@@ -315,7 +316,7 @@ public class CommandDrive extends OpMode {
         }
 
         shooter.setPitchAngle(targetAngle, isLeftSide);
-        keepShooterAtVelocity(shooter, targetVelocity);
+        keepShooterAtVelocity(shooter, targetPosition);
 
         double distanceFromLastVeloToCurrentVelo = shooter.launcherMotor.getCorrectedVelocity() - (isLeftSide ? lastVelocityLeft : lastVelocityRight);
         if (distanceFromLastVeloToCurrentVelo < maxJumpInShooterVelo) {
@@ -329,8 +330,12 @@ public class CommandDrive extends OpMode {
         }
 
         if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
-            atVelTicks++;
-            if (atVelTicks > 10) {
+            if (isLeftSide) {
+                leftAtVelTicks++;
+            } else {
+                rightAtVelTicks++;
+            }
+            if (isLeftSide ? leftAtVelTicks > 10 : rightAtVelTicks > 10) {
                 chute.start();
                 robot.lock.open();
                 if (isLeftSide) {
@@ -339,12 +344,17 @@ public class CommandDrive extends OpMode {
                     gamepad1.setLedColor(0.5, 0, 0.5, 500);
                 }
             }
+
         } else {
-            atVelTicks = 0;
+            if (isLeftSide) {
+                leftAtVelTicks = 0;
+            } else {
+                rightAtVelTicks = 0;
+            }
         }
 
         lastVelocityLeft = robot.shooterLeft.launcherMotor.getCorrectedVelocity();
-        lastVelocityRight =robot.shooterRight.launcherMotor.getCorrectedVelocity();
+        lastVelocityRight = robot.shooterRight.launcherMotor.getCorrectedVelocity();
     }
     void keepShooterAtVelocity(Hardware.Shooter shooter, double targetPosition) {
         if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
