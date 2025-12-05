@@ -22,6 +22,8 @@ public class BlueNoGate extends OpMode {
     double lastVelocityLeft = 0;
     double lastVelocityRight = 0;
     double atVelTicks = 0;
+    boolean leftIsShooting = false;
+    boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
 
@@ -35,18 +37,13 @@ public class BlueNoGate extends OpMode {
                 follower.followPath(pathMaster.StartToShoot);
                 setPathState(100);
                 break;
-            case 100:
-                shoot(1300, 0, true);
-                if (leftHasShot) {
-                    setPathState(1);
-                }
-                break;
             case 1:
                 if (!follower.isBusy()) {
                     robot.intakeFront.start();
                     robot.intakeBack.start();
                     robot.chuteRight.start();
                     robot.chuteLeft.start();
+                    robot.lock.close();
                     follower.followPath(pathMaster.ShootToLOne, true);
                     setPathState(2);
                 }
@@ -73,6 +70,7 @@ public class BlueNoGate extends OpMode {
                     robot.intakeBack.start();
                     robot.chuteRight.start();
                     robot.chuteLeft.start();
+                    robot.lock.close();
                     follower.followPath(pathMaster.ShootToLTwo, true);
                     setPathState(5);
                 }
@@ -99,6 +97,7 @@ public class BlueNoGate extends OpMode {
                     robot.intakeBack.start();
                     robot.chuteRight.start();
                     robot.chuteLeft.start();
+                    robot.lock.close();
                     follower.followPath(pathMaster.ShootToLThree, true);
                     setPathState(8);
                 }
@@ -124,6 +123,23 @@ public class BlueNoGate extends OpMode {
                     setPathState(-1);
                 }
                 break;
+
+
+
+            case 100:
+                shoot(1300, 0, true);
+                if (leftHasShot) {
+                    leftHasShot = false;
+                    setPathState(101);
+                }
+                break;
+            case 101:
+                shoot(1300, 0, false);
+                if (rightHasShot) {
+                    rightHasShot = false;
+                    setPathState(1);
+                }
+                break;
         }
 
         if (robot.intakeFront.isRotating) {
@@ -136,6 +152,9 @@ public class BlueNoGate extends OpMode {
             } else if (detectedBack != Hardware.ArtifactType.NONE) {
                 robot.sorter.updateServo(detectedBack, true);
             }
+        }
+        if (pathState == 0) {
+            keepShooterAtVelocity(robot.shooterLeft, 1000);
         }
     }
 
@@ -162,6 +181,14 @@ public class BlueNoGate extends OpMode {
         telemetry.addData("x", follower.getPose().getX());
         telemetry.addData("y", follower.getPose().getY());
         telemetry.addData("heading", follower.getPose().getHeading());
+
+        telemetry.addData("shooting left", leftIsShooting);
+        telemetry.addData("shooting right", rightIsShooting);
+        telemetry.addData("launcherPower right", robot.shooterRight.launcherMotor.getCorrectedVelocity());
+        telemetry.addData("launcherPower left", robot.shooterLeft.launcherMotor.getCorrectedVelocity());
+        telemetry.addData("has shot left", leftHasShot);
+        telemetry.addData("has shot right", rightHasShot);
+
         telemetry.update();
     }
 
@@ -214,37 +241,55 @@ public class BlueNoGate extends OpMode {
             chute = robot.chuteRight;
         }
 
-        shooter.setPitchAngle(targetAngle, isLeftSide);
-        keepShooterAtVelocity(shooter, targetVelocity);
-
-        double distanceFromLastVeloToCurrentVelo = shooter.launcherMotor.getCorrectedVelocity() - (isLeftSide ? lastVelocityLeft : lastVelocityRight);
-
-        if (distanceFromLastVeloToCurrentVelo < -80) {
-            robot.lock.close();
-            chute.stop();
-            if (isLeftSide) {leftHasShot = true;} else {rightHasShot = true;}
-            gamepad1.rumble(500);
-        } else {
-            if (isLeftSide) {leftHasShot = false;} else {rightHasShot = false;}
+        if (targetAngle < 17) { //up
+            if (isLeftSide) {
+                shooter.pitchServo.setPosition(1);
+            } else {
+                shooter.pitchServo.setPosition(0.15);
+            }
+        } else { //down
+            if (isLeftSide) {
+                shooter.pitchServo.setPosition(0.1);
+            } else {
+                shooter.pitchServo.setPosition(0.65);
+            }
         }
 
-        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
-            atVelTicks++;
-            if (atVelTicks > 10) {
-                chute.start();
-                robot.lock.open();
+        //shooter.setPitchAngle(targetAngle, isLeftSide);
+        keepShooterAtVelocity(shooter, targetPosition);
+
+        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 60 && !(isLeftSide ? leftIsShooting : rightIsShooting)) {
+            if (isLeftSide) {
+                leftIsShooting = true;
+                gamepad1.setLedColor(0, 1, 0, 500);
+            } else {
+                rightIsShooting = true;
+                gamepad1.setLedColor(0.5, 0, 0.5, 500);
+            }
+
+        }
+
+        if (isLeftSide ? leftIsShooting : rightIsShooting) {
+            chute.start();
+            robot.lock.open();
+
+            if (shooter.launcherMotor.getCorrectedVelocity() - (isLeftSide ? lastVelocityLeft : lastVelocityRight) < -100) {
+                robot.lock.close();
+                chute.stop();
                 if (isLeftSide) {
-                    gamepad1.setLedColor(0, 1, 0, 500);
+                    leftIsShooting = false;
+                    leftHasShot = true;
                 } else {
-                    gamepad1.setLedColor(0.5, 0, 0.5, 500);
+                    rightIsShooting = false;
+                    rightHasShot = true;
                 }
             }
         } else {
-            atVelTicks = 0;
+            chute.stop();
         }
 
         lastVelocityLeft = robot.shooterLeft.launcherMotor.getCorrectedVelocity();
-        lastVelocityRight =robot.shooterRight.launcherMotor.getCorrectedVelocity();
+        lastVelocityRight = robot.shooterRight.launcherMotor.getCorrectedVelocity();
     }
     void keepShooterAtVelocity(Hardware.Shooter shooter, double targetPosition) {
         if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {

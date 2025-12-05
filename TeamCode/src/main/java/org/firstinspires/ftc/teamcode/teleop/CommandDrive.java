@@ -371,31 +371,18 @@ public class CommandDrive extends OpMode {
             }
         }
 
-        shooter.setPitchAngle(targetAngle, isLeftSide);
+        //shooter.setPitchAngle(targetAngle, isLeftSide);
         keepShooterAtVelocity(shooter, targetPosition);
 
         if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 60 && !(isLeftSide ? leftIsShooting : rightIsShooting)) {
-            /*if (isLeftSide) {
-                leftAtVelTicks++;
+            if (isLeftSide) {
+                leftIsShooting = true;
+                gamepad1.setLedColor(0, 1, 0, 500);
             } else {
-                rightAtVelTicks++;
+                rightIsShooting = true;
+                gamepad1.setLedColor(0.5, 0, 0.5, 500);
             }
-            if (isLeftSide ? leftAtVelTicks > 1 : rightAtVelTicks > 1) {*/
-                if (isLeftSide) {
-                    leftIsShooting = true;
-                    gamepad1.setLedColor(0, 1, 0, 500);
-                } else {
-                    rightIsShooting = true;
-                    gamepad1.setLedColor(0.5, 0, 0.5, 500);
-                }
-            //}
 
-        } else {
-            /*if (isLeftSide) {
-                leftAtVelTicks = 0;
-            } else {
-                rightAtVelTicks = 0;
-            }*/
         }
 
         if (isLeftSide ? leftIsShooting : rightIsShooting) {
