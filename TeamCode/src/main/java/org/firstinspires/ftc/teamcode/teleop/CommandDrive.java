@@ -61,6 +61,10 @@ public class CommandDrive extends OpMode {
     double lastVelocityRight = 0;
     double sorterTargetAngle = 0;
     double maxJumpInShooterVelo = 0;
+    boolean leftIsShooting = false;
+    boolean rightIsShooting = false;
+    boolean manualSorting = true;
+    Commands commandsList;
 
     @Override
     public void init() {
@@ -84,7 +88,7 @@ public class CommandDrive extends OpMode {
             team = Hardware.Teams.BLUE;
         }
 
-        Commands commandsList = new Commands();
+        commandsList = new Commands();
         driverGamepad = new GamepadEx(gamepad1);
 
         toRedBase = () -> follower.pathBuilder()
@@ -169,23 +173,39 @@ public class CommandDrive extends OpMode {
                 robot.intakeFront.reverse();
                 robot.intakeBack.reverse();
             } else {
-                robot.chuteLeft.start();
-                robot.chuteRight.start();
+                if (gamepad1.left_trigger < 0.5 && !robot.lock.isOpen) { //if we are not trying to shoot and the lock is closed
+                    robot.chuteLeft.start();
+                } else if (!leftIsShooting) { //ok lock is probably open
+                    robot.chuteLeft.stop();
+                }
+                if (gamepad1.right_trigger < 0.5 && !robot.lock.isOpen) {
+                    robot.chuteRight.start();
+                } else if (!rightIsShooting) {
+                    robot.chuteRight.stop();
+                }
+
                 robot.intakeFront.start();
                 robot.intakeBack.start();
+
             }
         } else {
-            robot.chuteLeft.stop();
-            robot.chuteRight.stop();
+            if (!leftIsShooting) {
+                robot.chuteLeft.stop();
+            }
+            if (!rightIsShooting) {
+                robot.chuteRight.stop();
+            }
             robot.intakeFront.stop();
             robot.intakeBack.stop();
         }
         if (gamepad1.dpadLeftWasPressed()) {
-            sorterTargetAngle = sorterTargetAngle + 5;
-            robot.lock.chuteLock.turnToAngle(sorterTargetAngle);
+            sorterTargetAngle = sorterTargetAngle + 0.05;
+            robot.shooterRight.pitchServo.setPosition(sorterTargetAngle);
+            robot.shooterLeft.pitchServo.setPosition(sorterTargetAngle);
         } else if (gamepad1.dpadRightWasPressed()) {
-            sorterTargetAngle = sorterTargetAngle - 5;
-            robot.lock.chuteLock.turnToAngle(sorterTargetAngle);
+            sorterTargetAngle = sorterTargetAngle - 0.05;
+            robot.shooterRight.pitchServo.setPosition(sorterTargetAngle);
+            robot.shooterLeft.pitchServo.setPosition(sorterTargetAngle);
         }
 
         if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
@@ -251,14 +271,14 @@ public class CommandDrive extends OpMode {
             follower.startTeleopDrive();
             automatedDrive = false;
         }
-
-        if (gamepad1.dpad_left) {
-            automatedDrive = true;
-        }
         //robot.shooterRight.setPitchAngle(pitchAngle, true);
         //robot.shooterLeft.setPitchAngle(pitchAngle, false);
 
-        if (robot.intakeFront.isRotating || gamepad1.dpad_up) {
+        if (gamepad2.bWasPressed()) {
+            manualSorting = !manualSorting;
+        }
+
+        if (robot.intakeFront.isRotating && !manualSorting) {
             Hardware.ArtifactType detectedFront = robot.intakeFront.colorSensor.detectColor();
             Hardware.ArtifactType detectedBack = robot.intakeBack.colorSensor.detectColor();
             telemetryM.addData("dfront", detectedFront);
@@ -271,12 +291,30 @@ public class CommandDrive extends OpMode {
                 robot.sorter.updateServo(Hardware.ArtifactType.NONE, false);
             }
         }
+        if (manualSorting) {
+            if (gamepad2.right_stick_x > 0.25) {
+                robot.sorter.green(false);
+            } else if (gamepad2.right_stick_x < -0.25) {
+                robot.sorter.purple(false);
+            } else {
+                robot.sorter.neutral();
+            }
+        }
 
         CommandScheduler.getInstance().run();
 
         if (robot.isInDangerZone(follower.getPose(), team)) {
             gamepad1.rumble(100);
         }
+
+        if (gamepad2.left_trigger > 0) {
+            robot.liftLeft.set(gamepad2.left_stick_y);
+            robot.liftRight.set(gamepad2.right_stick_y);
+        } else {
+            robot.liftLeft.set(gamepad2.left_stick_y);
+            robot.liftRight.set(gamepad2.left_stick_y);
+        }
+
 
 
 
@@ -294,6 +332,10 @@ public class CommandDrive extends OpMode {
         telemetryM.addData("sorter servo angle", sorterTargetAngle);
         telemetryM.addData("distance to team goal", Hardware.distanceToGoal(team, follower.getPose()));
         telemetryM.addData("is in shooting area?", robot.isInTriangle(follower.getPose()));
+        telemetryM.addData("shooting left", leftIsShooting);
+        telemetryM.addData("shooting right", rightIsShooting);
+        telemetryM.addData("pitch right", robot.shooterRight.pitchServo.getPosition());
+        telemetryM.addData("pitch left", robot.shooterLeft.pitchServo.getPosition());
         telemetryM.addData("is in danger zone?", robot.isInDangerZone(follower.getPose(), team));
 
         telemetryM.update(telemetry);
@@ -315,42 +357,63 @@ public class CommandDrive extends OpMode {
             chute = robot.chuteRight;
         }
 
+        if (targetAngle < 17) { //up
+            if (isLeftSide) {
+                shooter.pitchServo.setPosition(1);
+            } else {
+                shooter.pitchServo.setPosition(0.15);
+            }
+        } else { //down
+            if (isLeftSide) {
+                shooter.pitchServo.setPosition(0.1);
+            } else {
+                shooter.pitchServo.setPosition(0.65);
+            }
+        }
+
         shooter.setPitchAngle(targetAngle, isLeftSide);
         keepShooterAtVelocity(shooter, targetPosition);
 
-        double distanceFromLastVeloToCurrentVelo = shooter.launcherMotor.getCorrectedVelocity() - (isLeftSide ? lastVelocityLeft : lastVelocityRight);
-        if (distanceFromLastVeloToCurrentVelo < maxJumpInShooterVelo) {
-            maxJumpInShooterVelo = distanceFromLastVeloToCurrentVelo;
-        }
-
-        if (distanceFromLastVeloToCurrentVelo < -80) {
-            robot.lock.close();
-            chute.stop();
-            gamepad1.rumble(500);
-        }
-
-        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 30) {
-            if (isLeftSide) {
+        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 60 && !(isLeftSide ? leftIsShooting : rightIsShooting)) {
+            /*if (isLeftSide) {
                 leftAtVelTicks++;
             } else {
                 rightAtVelTicks++;
             }
-            if (isLeftSide ? leftAtVelTicks > 10 : rightAtVelTicks > 10) {
-                chute.start();
-                robot.lock.open();
+            if (isLeftSide ? leftAtVelTicks > 1 : rightAtVelTicks > 1) {*/
                 if (isLeftSide) {
+                    leftIsShooting = true;
                     gamepad1.setLedColor(0, 1, 0, 500);
                 } else {
+                    rightIsShooting = true;
                     gamepad1.setLedColor(0.5, 0, 0.5, 500);
                 }
-            }
+            //}
 
         } else {
-            if (isLeftSide) {
+            /*if (isLeftSide) {
                 leftAtVelTicks = 0;
             } else {
                 rightAtVelTicks = 0;
+            }*/
+        }
+
+        if (isLeftSide ? leftIsShooting : rightIsShooting) {
+            chute.start();
+            robot.lock.open();
+
+            if (shooter.launcherMotor.getCorrectedVelocity() - (isLeftSide ? lastVelocityLeft : lastVelocityRight) < -100) {
+                robot.lock.close();
+                chute.stop();
+                if (isLeftSide) {
+                    leftIsShooting = false;
+                } else {
+                    rightIsShooting = false;
+                }
+                gamepad1.rumble(500);
             }
+        } else {
+            chute.stop();
         }
 
         lastVelocityLeft = robot.shooterLeft.launcherMotor.getCorrectedVelocity();

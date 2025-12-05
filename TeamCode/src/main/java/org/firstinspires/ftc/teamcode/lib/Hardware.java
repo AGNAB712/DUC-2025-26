@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 public class Hardware {
 
     private HardwareMap hwMap;
-    public MotorEx fL, fR, rL, rR;
+    public MotorEx liftLeft, liftRight;
     //public Intake intake1 = new Intake();
     //public Intake intake2 = new Intake();
     public Sorter sorter;
@@ -124,6 +124,9 @@ public class Hardware {
         lock = new Lock(new SimpleServo(hwMap, "lock", 0, 360));
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 360));
 
+        liftLeft = new MotorEx(hwMap, "liftLeft");
+        liftRight = new MotorEx(hwMap, "liftRight");
+
         aprilTag = AprilTagProcessor.easyCreateWithDefaults();
 
         VisionPortal visionPortal = new VisionPortal.Builder()
@@ -140,8 +143,8 @@ public class Hardware {
             lut.add(29, 1300);
             lut.add(49, 1475);
             lut.add(74, 1600);
-            lut.add(111, 1900);
-            lut.add(123, 1910);
+            lut.add(111, 1850);
+            lut.add(123, 1870);
             lut.add(1000, 1951);
 
             lut.createLUT();
@@ -184,13 +187,18 @@ public class Hardware {
 
     public static class Lock extends SubsystemBase {
         public SimpleServo chuteLock;
+        public boolean isOpen = false;
         public Lock(SimpleServo myChuteLock) {
             chuteLock = myChuteLock;
         }
         public void open() {
+            isOpen = true;
+
             chuteLock.setPosition(0.25);
         }
         public void close() {
+            isOpen = false;
+
             chuteLock.setPosition(0);
         }
     }

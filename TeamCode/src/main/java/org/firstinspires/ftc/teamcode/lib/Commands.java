@@ -8,7 +8,7 @@ import com.seattlesolvers.solverslib.command.WaitCommand;
 
 public class Commands {
 
-    public class SpinChute extends CommandBase {
+    public static class SpinChute extends CommandBase {
         private final Hardware.Chute chute;
         private final boolean isReversed;
 
