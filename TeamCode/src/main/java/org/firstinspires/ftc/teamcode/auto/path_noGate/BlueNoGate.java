@@ -202,6 +202,8 @@ public class BlueNoGate extends OpMode {
         opmodeTimer.resetTimer();
         robot = new Hardware(hardwareMap);
 
+        robot.teamBlackboard.set(Hardware.Teams.BLUE);
+
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
         follower.setStartingPose(new Pose(31, 128, Math.toRadians(90)));
