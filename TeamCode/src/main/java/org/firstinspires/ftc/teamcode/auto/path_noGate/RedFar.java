@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.auto.path_noGate;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -13,8 +14,9 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "RedBasic", group = "nogate")
-public class RedBasic extends OpMode {
+@Autonomous(name = "RedFar", group = "far")
+@Configurable
+public class RedFar extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer;
@@ -31,10 +33,12 @@ public class RedBasic extends OpMode {
     boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
-    double velocityForMidShooting = 1525;
+    static double velocityForMidShooting = 1825;
     int shootToResetTo = 0;
     int timesHasShot = 0;
+    static int delaySeconds = 5;
     boolean sorterGoesCrazy = false;
+    ElapsedTime shotTimer = new ElapsedTime(100000000);
     public List<Hardware.ArtifactType> sequence = new ArrayList<>();
 
     public void buildPaths() {
@@ -44,94 +48,71 @@ public class RedBasic extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
-                follower.followPath(pathMaster.StartToTag);
-                setPathState(1);
-                break;
-            case 1:
-                if (!follower.isBusy()) {
-                    List<AprilTagDetection> currentDetections = robot.aprilTag.getDetections();
+                List<AprilTagDetection> currentDetections = robot.aprilTag.getDetections();
 
-                    for (AprilTagDetection detection : currentDetections) {
-                        if (detection.id == 21) { //once again.... make this a function... please
-                            sequence.add(Hardware.ArtifactType.GREEN);
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            setPathState(2);
-                        } else if (detection.id == 22) {
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            sequence.add(Hardware.ArtifactType.GREEN);
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            setPathState(2);
-                        } else if (detection.id == 23) {
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            sequence.add(Hardware.ArtifactType.GREEN);
-                            setPathState(2);
-                        }
+                for (AprilTagDetection detection : currentDetections) {
+                    if (detection.id == 21) { //once again.... make this a function... please
+                        sequence.add(Hardware.ArtifactType.GREEN);
+                        sequence.add(Hardware.ArtifactType.PURPLE);
+                        sequence.add(Hardware.ArtifactType.PURPLE);
+                        setPathState(4);
+                    } else if (detection.id == 22) {
+                        sequence.add(Hardware.ArtifactType.PURPLE);
+                        sequence.add(Hardware.ArtifactType.GREEN);
+                        sequence.add(Hardware.ArtifactType.PURPLE);
+                        setPathState(4);
+                    } else if (detection.id == 23) {
+                        sequence.add(Hardware.ArtifactType.PURPLE);
+                        sequence.add(Hardware.ArtifactType.PURPLE);
+                        sequence.add(Hardware.ArtifactType.GREEN);
+                        setPathState(4);
                     }
                 }
                 break;
-            case 2:
+            case 1:
                 if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.TagToShoot);
-                    shootToResetTo = 3;
+                    follower.followPath(pathMaster.FarStartToShoot);
+                    shootToResetTo = 2;
                     setPathState(100);
                 }
                 break;
 
+            case 2:
+                if (!follower.isBusy()) {
+                    follower.followPath(pathMaster.FarShootToHP);
+                    setPathState(3);
+                }
+                break;
             case 3:
                 if (!follower.isBusy()) {
-                    robot.intakeFront.start();
-                    robot.intakeBack.start();
-                    robot.chuteRight.start();
-                    robot.chuteLeft.start();
-                    robot.lock.close();
-                    follower.followPath(pathMaster.ShootToLOne, true);
-                    setPathState(4);
-                }
-                break;
-            case 4:
-                if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.LOne, 0.6, true);
-                    setPathState(5);
-                }
-                break;
-            case 5:
-                if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.LTwoToShoot, true);
-                    shootToResetTo = 6;
-                    sequence = new ArrayList<>();
-                    sequence.add(Hardware.ArtifactType.PURPLE);
-                    sequence.add(Hardware.ArtifactType.PURPLE);
-                    sequence.add(Hardware.ArtifactType.PURPLE);
-                    setPathState(100);
-                }
-                break;
-            case 6:
-                if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.ShootToLeave, true);
-                    setPathState(6);
-                }
-                break;
-            case 7:
-                if (!follower.isBusy()) {
+                    robot.shooterRight.launcherMotor.set(0);
+                    robot.shooterLeft.launcherMotor.set(0);
                     setPathState(-1);
                 }
                 break;
+
+            case 4:
+                if (opmodeTimer.seconds() >= delaySeconds) {
+                    setPathState(1);
+                }
+                break;
+
 
 
 
             case 100:
                 if (!follower.isBusy()) { //make this a function later PLEASE.....
                     if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(101);
                         }
                     } else {
-                        shoot(velocityForMidShooting, 0, false);
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;
@@ -143,14 +124,16 @@ public class RedBasic extends OpMode {
             case 101:
                 if (!follower.isBusy()) {
                     if (sequence.get(1) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(102);
                         }
                     } else {
-                        shoot(velocityForMidShooting, 0, false);
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;
@@ -162,14 +145,16 @@ public class RedBasic extends OpMode {
             case 102:
                 if (!follower.isBusy()) {
                     if (sequence.get(2) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(shootToResetTo);
                         }
                     } else {
-                        shoot(velocityForMidShooting, 0, false);
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;
@@ -188,8 +173,8 @@ public class RedBasic extends OpMode {
         robot.sorter.purple(false);
 
         if (pathState < 100) {
-            keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
-            keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+            //keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+            //keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
         }
     }
 
@@ -211,11 +196,6 @@ public class RedBasic extends OpMode {
         follower.update();
         autonomousPathUpdate();
 
-        if (opmodeTimer.seconds() >= 29) {
-            robot.endPositionBlackboard.set(follower.getPose());
-            robot.teamBlackboard.set(Hardware.Teams.RED);
-        }
-
         // Feedback to Driver Hub for debugging
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());
@@ -230,6 +210,7 @@ public class RedBasic extends OpMode {
         telemetry.addData("has shot right", rightHasShot);
 
         telemetry.addData("timer", pathTimer.getElapsedTimeSeconds());
+        telemetry.addData("seq", sequence);
 
         telemetry.update();
     }
@@ -244,9 +225,11 @@ public class RedBasic extends OpMode {
         opmodeTimer.reset();
         robot = new Hardware(hardwareMap);
 
+        robot.teamBlackboard.set(Hardware.Teams.RED);
+
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
-        follower.setStartingPose(Poses.startPosition.mirror());
+        follower.setStartingPose(Poses.startFarPosition.mirror());
 
     }
 
@@ -265,14 +248,11 @@ public class RedBasic extends OpMode {
     public void start() {
         opmodeTimer.reset();
         setPathState(0);
-        robot.teamBlackboard.set(Hardware.Teams.RED);
     }
 
     @Override
     public void stop() {
-
         robot.endPositionBlackboard.set(follower.getPose());
-        robot.teamBlackboard.set(Hardware.Teams.RED);
     }
 
     void shoot(double targetPosition, double targetAngle, boolean isLeftSide) {
@@ -294,7 +274,7 @@ public class RedBasic extends OpMode {
             }
         } else { //down
             if (isLeftSide) {
-                shooter.pitchServo.setPosition(0.1); //0.1
+                shooter.pitchServo.setPosition(0.5); //0.1
             } else {
                 shooter.pitchServo.setPosition(0.65); //0.65
             }

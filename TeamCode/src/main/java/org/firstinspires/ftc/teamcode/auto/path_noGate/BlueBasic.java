@@ -83,6 +83,40 @@ public class BlueBasic extends OpMode {
 
             case 3:
                 if (!follower.isBusy()) {
+                    robot.intakeFront.start();
+                    robot.intakeBack.start();
+                    robot.chuteRight.start();
+                    robot.chuteLeft.start();
+                    robot.lock.close();
+                    follower.followPath(pathMaster.ShootToLOne, true);
+                    setPathState(4);
+                }
+                break;
+            case 4:
+                if (!follower.isBusy()) {
+                    follower.followPath(pathMaster.LOne, 0.6, true);
+                    setPathState(5);
+                }
+                break;
+            case 5:
+                if (!follower.isBusy()) {
+                    follower.followPath(pathMaster.LTwoToShoot, true);
+                    shootToResetTo = 6;
+                    sequence = new ArrayList<>();
+                    sequence.add(Hardware.ArtifactType.PURPLE);
+                    sequence.add(Hardware.ArtifactType.PURPLE);
+                    sequence.add(Hardware.ArtifactType.PURPLE);
+                    setPathState(100);
+                }
+                break;
+            case 6:
+                if (!follower.isBusy()) {
+                    follower.followPath(pathMaster.ShootToLeave, true);
+                    setPathState(6);
+                }
+                break;
+            case 7:
+                if (!follower.isBusy()) {
                     setPathState(-1);
                 }
                 break;
@@ -110,7 +144,7 @@ public class BlueBasic extends OpMode {
                 break;
             case 101:
                 if (!follower.isBusy()) {
-                    if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
+                    if (sequence.get(1) == Hardware.ArtifactType.GREEN) {
                         shoot(velocityForMidShooting, 0, true);
                         if (leftHasShot) {
                             leftHasShot = false;
@@ -129,7 +163,7 @@ public class BlueBasic extends OpMode {
                 break;
             case 102:
                 if (!follower.isBusy()) {
-                    if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
+                    if (sequence.get(2) == Hardware.ArtifactType.GREEN) {
                         shoot(velocityForMidShooting, 0, true);
                         if (leftHasShot) {
                             leftHasShot = false;
@@ -153,17 +187,7 @@ public class BlueBasic extends OpMode {
             if (detectedFront != Hardware.ArtifactType.NONE) {
                 robot.sorter.updateServo(detectedFront, false);
             }*/
-        if (sorterGoesCrazy) {
-            if (Math.floor(opmodeTimer.milliseconds()/1000) % 2 == 0) {
-                if (robot.sorter.isInGreen) {
-                    robot.sorter.purple(false);
-                } else {
-                    robot.sorter.green(false);
-                }
-            }
-
-
-        }
+        robot.sorter.purple(false);
 
         if (pathState < 100) {
             keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
@@ -202,7 +226,7 @@ public class BlueBasic extends OpMode {
         telemetry.addData("has shot left", leftHasShot);
         telemetry.addData("has shot right", rightHasShot);
 
-        telemetry.addData("times", timesHasShot);
+        telemetry.addData("timer", pathTimer.getElapsedTimeSeconds());
 
         telemetry.update();
     }

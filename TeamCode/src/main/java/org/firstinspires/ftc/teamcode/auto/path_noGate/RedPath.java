@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.auto.path_noGate;
 
+import static org.firstinspires.ftc.teamcode.auto.path_noGate.Poses.shootFarPosition;
 import static org.firstinspires.ftc.teamcode.auto.path_noGate.Poses.shootPosition;
+import static org.firstinspires.ftc.teamcode.auto.path_noGate.Poses.startFarPosition;
 import static org.firstinspires.ftc.teamcode.auto.path_noGate.Poses.startPosition;
 
 import com.pedropathing.follower.Follower;
@@ -24,13 +26,38 @@ public class RedPath {
     public PathChain LThreeToCloseShoot;
     public PathChain StartToTag;
     public PathChain TagToShoot;
+    public PathChain ShootToLeave;
+    public PathChain FarStartToShoot;
+    public PathChain FarShootToHP;
 
 
     public RedPath(Follower follower) {
+        FarShootToHP = follower
+                .pathBuilder()
+                .addPath(
+                        new BezierLine(shootFarPosition.mirror(), new Pose(14, 10).mirror())
+                )
+                .setLinearHeadingInterpolation(shootFarPosition.mirror().getHeading(), Math.toRadians(180))
+                .build();
+        FarStartToShoot = follower
+                .pathBuilder()
+                .addPath(
+                        new BezierLine(startFarPosition.mirror(), new Pose(56.880, 17.75, Math.toRadians(112)).mirror())
+                )
+                .setLinearHeadingInterpolation(startFarPosition.mirror().getHeading(), new Pose(56.880, 17.75, Math.toRadians(112)).mirror().getHeading())
+                .build();
+        ShootToLeave = follower
+                .pathBuilder()
+                .addPath(
+                        new BezierLine(shootPosition.mirror(), new Pose(37, shootPosition.getY()).mirror())
+                )
+                .setLinearHeadingInterpolation(shootPosition.mirror().getHeading(), Math.toRadians(180))
+                .build();
+
         StartToTag = follower
                 .pathBuilder()
                 .addPath(
-                        new BezierLine(startPosition.mirror(), new Pose(72, 72))
+                        new BezierLine(startPosition.mirror(), new Pose(65, 72).mirror())
                 )
                 .setLinearHeadingInterpolation(startPosition.mirror().getHeading(), Math.toRadians(90))
                 .build();
@@ -38,7 +65,7 @@ public class RedPath {
         TagToShoot = follower
                 .pathBuilder()
                 .addPath(
-                        new BezierLine(new Pose(72, 72), shootPosition.mirror())
+                        new BezierLine(new Pose(65, 72).mirror(), shootPosition.mirror())
                 )
                 .setLinearHeadingInterpolation(Math.toRadians(90), shootPosition.mirror().getHeading())
                 .build();

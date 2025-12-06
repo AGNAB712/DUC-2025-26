@@ -478,8 +478,8 @@ public class Hardware {
 
     }
 
-    public static class BlackboardObject {
-        public static String KEY;
+    public class BlackboardObject {
+        public String KEY;
         public Object myObject;
         public BlackboardObject(String myKey) {
             KEY = myKey;

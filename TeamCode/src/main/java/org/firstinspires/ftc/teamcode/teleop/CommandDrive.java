@@ -82,12 +82,6 @@ public class CommandDrive extends OpMode {
 
         headingPIDController.setCoefficients(follower.getConstants().coefficientsHeadingPIDF);
 
-        if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
-            team = Hardware.Teams.RED;
-        } else if (robot.teamBlackboard.get() == Hardware.Teams.BLUE) {
-            team = Hardware.Teams.BLUE;
-        }
-
         commandsList = new Commands();
         driverGamepad = new GamepadEx(gamepad1);
 
@@ -110,6 +104,11 @@ public class CommandDrive extends OpMode {
         follower.startTeleopDrive();
         robot.shooterRight.stop();
         robot.shooterLeft.stop();
+        if (robot.teamBlackboard.get() == Hardware.Teams.RED) {
+            team = Hardware.Teams.RED;
+        } else if (robot.teamBlackboard.get() == Hardware.Teams.BLUE) {
+            team = Hardware.Teams.BLUE;
+        }
     }
 
     @Override
@@ -212,6 +211,9 @@ public class CommandDrive extends OpMode {
             double[] velLutOutput = velLUT.get(Hardware.distanceToGoal(team, follower.getPose()));
             targetVelocity = velLutOutput[0];
             targetAngle = velLutOutput[1];
+            headingLock = true;
+        } else {
+            headingLock = false;
         }
 
         if (gamepad1.right_trigger > 0) {
@@ -307,16 +309,21 @@ public class CommandDrive extends OpMode {
             gamepad1.rumble(100);
         }
 
-        if (gamepad2.left_trigger > 0) {
+        if (gamepad2.left_trigger > 0.25) {
             robot.liftLeft.set(gamepad2.left_stick_y);
             robot.liftRight.set(gamepad2.right_stick_y);
         } else {
-            robot.liftLeft.set(gamepad2.left_stick_y);
-            robot.liftRight.set(gamepad2.left_stick_y);
+            if (gamepad2.dpad_up) {
+                robot.liftLeft.set(-1);
+                robot.liftRight.set(-1);
+            } else if (gamepad2.dpad_down) {
+                robot.liftLeft.set(1);
+                robot.liftRight.set(1);
+            } else {
+                robot.liftLeft.set(0);
+                robot.liftRight.set(0);
+            }
         }
-
-
-
 
 
 
@@ -365,7 +372,7 @@ public class CommandDrive extends OpMode {
             }
         } else { //down
             if (isLeftSide) {
-                shooter.pitchServo.setPosition(0.1);
+                shooter.pitchServo.setPosition(0.5);
             } else {
                 shooter.pitchServo.setPosition(0.65);
             }
@@ -385,7 +392,7 @@ public class CommandDrive extends OpMode {
 
         }
 
-        if (isLeftSide ? leftIsShooting : rightIsShooting) {
+        if (isLeftSide ? leftIsShooting : rightIsShooting && robot.isInTriangle(follower.getPose())) {
             chute.start();
             robot.lock.open();
 
