@@ -22,9 +22,27 @@ public class RedPath {
     public PathChain LThree;
     public PathChain LThreeToFarShoot;
     public PathChain LThreeToCloseShoot;
+    public PathChain StartToTag;
+    public PathChain TagToShoot;
 
 
     public RedPath(Follower follower) {
+        StartToTag = follower
+                .pathBuilder()
+                .addPath(
+                        new BezierLine(startPosition.mirror(), new Pose(72, 72))
+                )
+                .setLinearHeadingInterpolation(startPosition.mirror().getHeading(), Math.toRadians(90))
+                .build();
+
+        TagToShoot = follower
+                .pathBuilder()
+                .addPath(
+                        new BezierLine(new Pose(72, 72), shootPosition.mirror())
+                )
+                .setLinearHeadingInterpolation(Math.toRadians(90), shootPosition.mirror().getHeading())
+                .build();
+
         StartToShoot = follower
                 .pathBuilder()
                 .addPath(

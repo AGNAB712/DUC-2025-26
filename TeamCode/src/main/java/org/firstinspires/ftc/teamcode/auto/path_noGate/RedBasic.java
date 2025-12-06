@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.auto.path_noGate;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -14,8 +13,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "BlueBasic", group = "nogate")
-public class BlueBasic extends OpMode {
+@Autonomous(name = "RedBasic", group = "nogate")
+public class RedBasic extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer;
@@ -23,7 +22,7 @@ public class BlueBasic extends OpMode {
 
     private int pathState;
     public Hardware robot;
-    public BluePath pathMaster;
+    public RedPath pathMaster;
     static double targetVelocity = 1500;
     double lastVelocityLeft = 0;
     double lastVelocityRight = 0;
@@ -40,7 +39,7 @@ public class BlueBasic extends OpMode {
     public List<Hardware.ArtifactType> sequence = new ArrayList<>();
 
     public void buildPaths() {
-        pathMaster = new BluePath(follower);
+        pathMaster = new RedPath(follower);
     }
 
     public void autonomousPathUpdate() {
@@ -221,7 +220,7 @@ public class BlueBasic extends OpMode {
 
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
-        follower.setStartingPose(Poses.startPosition);
+        follower.setStartingPose(Poses.startPosition.mirror());
 
     }
 
