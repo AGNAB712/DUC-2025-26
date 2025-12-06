@@ -4,14 +4,14 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.lib.Hardware;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous(name = "BlueFarNoGate", group = "nogate")
-public class BlueNoGate extends OpMode {
+@Autonomous(name = "BlueBasic", group = "nogate")
+public class BlueBasic extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer;
@@ -31,7 +31,7 @@ public class BlueNoGate extends OpMode {
     double velocityForMidShooting = 1525;
     int shootToResetTo = 0;
     int timesHasShot = 0;
-    boolean sorterGoesCrazy = true;
+    boolean sorterGoesCrazy = false;
     ElapsedTime shotTimer = new ElapsedTime(100000000);
 
     public void buildPaths() {
@@ -41,86 +41,18 @@ public class BlueNoGate extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
-                follower.followPath(pathMaster.StartToShoot);
-                shootToResetTo = 1;
-                setPathState(100);
+                follower.followPath(pathMaster.StartToTag);
+                setPathState(1);
                 break;
             case 1:
                 if (!follower.isBusy()) {
-                    robot.intakeFront.start();
-                    robot.intakeBack.start();
-                    robot.chuteRight.start();
-                    robot.chuteLeft.start();
-                    robot.lock.close();
-                    follower.followPath(pathMaster.ShootToLOne, true);
-                    setPathState(2);
-                }
-                break;
-            case 2:
-                if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.LOne, 0.6, true);
-                    setPathState(3);
-                }
-                break;
-            case 3:
-                if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.LOneToShoot, true);
-                    shootToResetTo = 4;
+                    follower.followPath(pathMaster.TagToShoot);
+                    shootToResetTo = 3;
                     setPathState(100);
                 }
                 break;
-            case 4:
-                if (!follower.isBusy()) {
-                    robot.intakeFront.start();
-                    robot.intakeBack.start();
-                    robot.chuteRight.start();
-                    robot.chuteLeft.start();
-                    robot.lock.close();
-                    follower.followPath(pathMaster.ShootToLTwo, true);
-                    setPathState(5);
-                }
-                break;
-            case 5:
-                if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.LTwo, 0.6, true);
-                    setPathState(6);
-                }
-                break;
-            case 6:
-                if (!follower.isBusy()) {
 
-                    follower.followPath(pathMaster.LTwoToShoot, true);
-                    setPathState(7);
-                }
-                break;
-            case 7:
-                if (!follower.isBusy()) {
-                    robot.intakeFront.start();
-                    robot.intakeBack.start();
-                    robot.chuteRight.start();
-                    robot.chuteLeft.start();
-                    robot.lock.close();
-                    follower.followPath(pathMaster.ShootToLThree, true);
-                    setPathState(8);
-                }
-                break;
-            case 8:
-                if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.LThree, 0.6, true);
-                    setPathState(9);
-                }
-                break;
-            case 9:
-                if (!follower.isBusy()) {
-                    robot.intakeFront.stop();
-                    robot.intakeBack.stop();
-                    robot.chuteRight.stop();
-                    robot.chuteLeft.stop();
-                    follower.followPath(pathMaster.LThreeToCloseShoot, true);
-                    setPathState(10);
-                }
-                break;
-            case 10:
+            case 3:
                 if (!follower.isBusy()) {
                     setPathState(-1);
                 }
@@ -131,18 +63,10 @@ public class BlueNoGate extends OpMode {
             case 100:
                 if (!follower.isBusy()) {
                     shoot(velocityForMidShooting, 0, true);
-                    shoot(velocityForMidShooting, 0, false);
                     if (leftHasShot) {
                         leftHasShot = false;
-                        timesHasShot++;
-                    }
-                    if (rightHasShot) {
-                        rightHasShot = false;
-                        timesHasShot++;
-                    }
-                    if (timesHasShot > 2 || pathTimer.getElapsedTimeSeconds() > 6) {
-                        timesHasShot = 0;
-                        setPathState(shootToResetTo);
+                        lastVelocityLeft = 0;
+                        setPathState(101);
                     }
                 }
                 break;
@@ -151,6 +75,17 @@ public class BlueNoGate extends OpMode {
                     shoot(velocityForMidShooting, 0, false);
                     if (rightHasShot) {
                         rightHasShot = false;
+                        lastVelocityRight = 0;
+                        setPathState(102);
+                    }
+                }
+                break;
+            case 102:
+                if (!follower.isBusy()) {
+                    shoot(velocityForMidShooting, 0, false);
+                    if (rightHasShot) {
+                        rightHasShot = false;
+                        lastVelocityRight = 0;
                         setPathState(shootToResetTo);
                     }
                 }
@@ -275,9 +210,9 @@ public class BlueNoGate extends OpMode {
             }
         } else { //down
             if (isLeftSide) {
-                shooter.pitchServo.setPosition(0.1);
+                shooter.pitchServo.setPosition(0.1); //0.1
             } else {
-                shooter.pitchServo.setPosition(0.65);
+                shooter.pitchServo.setPosition(0.65); //0.65
             }
         }
 

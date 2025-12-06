@@ -299,6 +299,7 @@ public class Hardware {
         public double[] neutralPositions = new double[]{55, 290};
         private int noneCount = 0;
         private final int noneThreshold = 15;
+        public boolean isInGreen = false;
         public ArtifactType currentColor = ArtifactType.NONE;
 
         public Sorter(ServoEx myServo) {
@@ -332,12 +333,17 @@ public class Hardware {
             }
         }
         public void green(boolean inverted) {
+            isInGreen = true;
             this.sorterServo.turnToAngle(inverted ? purplePositions[0] : purplePositions[0]);
         }
         public void purple(boolean inverted) {
+            isInGreen = false;
             this.sorterServo.turnToAngle(inverted ? greenPositions[0] : greenPositions[0]);
         }
-        public void neutral() {this.sorterServo.turnToAngle(neutralPositions[0]);}
+        public void neutral() {
+            isInGreen = false;
+            this.sorterServo.turnToAngle(neutralPositions[0]);
+        }
     }
 
     //INTAKE SENSOR

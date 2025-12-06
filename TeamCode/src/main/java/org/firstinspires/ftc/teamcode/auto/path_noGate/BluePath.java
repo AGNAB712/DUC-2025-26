@@ -7,6 +7,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 
 public class BluePath {
@@ -22,6 +23,8 @@ public class BluePath {
     public PathChain LThree;
     public PathChain LThreeToFarShoot;
     public PathChain LThreeToCloseShoot;
+    public PathChain StartToTag;
+    public PathChain TagToShoot;
 
 
     public BluePath(Follower follower) {
@@ -31,6 +34,22 @@ public class BluePath {
                         new BezierLine(startPosition, shootPosition)
                 )
                 .setLinearHeadingInterpolation(startPosition.getHeading(), shootPosition.getHeading())
+                .build();
+
+        StartToTag = follower
+                .pathBuilder()
+                .addPath(
+                        new BezierLine(startPosition, new Pose(72, 72))
+                )
+                .setLinearHeadingInterpolation(startPosition.getHeading(), Math.toRadians(90))
+                .build();
+
+        TagToShoot = follower
+                .pathBuilder()
+                .addPath(
+                        new BezierLine(new Pose(72, 72), shootPosition)
+                )
+                .setLinearHeadingInterpolation(Math.toRadians(90), shootPosition.getHeading())
                 .build();
 
         ShootToLOne = follower
