@@ -101,6 +101,7 @@ public class BlueFar extends OpMode {
             case 100:
                 if (!follower.isBusy()) { //make this a function later PLEASE.....
                     if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                         shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
@@ -108,6 +109,7 @@ public class BlueFar extends OpMode {
                             setPathState(101);
                         }
                     } else {
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
                         shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
@@ -120,6 +122,7 @@ public class BlueFar extends OpMode {
             case 101:
                 if (!follower.isBusy()) {
                     if (sequence.get(1) == Hardware.ArtifactType.GREEN) {
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                         shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
@@ -127,6 +130,7 @@ public class BlueFar extends OpMode {
                             setPathState(102);
                         }
                     } else {
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
                         shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
@@ -139,6 +143,7 @@ public class BlueFar extends OpMode {
             case 102:
                 if (!follower.isBusy()) {
                     if (sequence.get(2) == Hardware.ArtifactType.GREEN) {
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                         shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
@@ -146,6 +151,7 @@ public class BlueFar extends OpMode {
                             setPathState(shootToResetTo);
                         }
                     } else {
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
                         shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
@@ -187,6 +193,10 @@ public class BlueFar extends OpMode {
         // These loop the movements of the robot, these must be called continuously in order to work
         follower.update();
         autonomousPathUpdate();
+
+        if (opmodeTimer.seconds() >= 29) {
+            robot.endPositionBlackboard.set(follower.getPose());
+        }
 
         // Feedback to Driver Hub for debugging
         telemetry.addData("path state", pathState);

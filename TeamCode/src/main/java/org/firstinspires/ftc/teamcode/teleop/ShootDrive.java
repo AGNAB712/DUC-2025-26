@@ -13,11 +13,8 @@ import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.seattlesolvers.solverslib.command.CommandScheduler;
-import com.seattlesolvers.solverslib.command.ParallelCommandGroup;
-import com.seattlesolvers.solverslib.command.RepeatCommand;
 import com.seattlesolvers.solverslib.command.button.Button;
 import com.seattlesolvers.solverslib.command.button.GamepadButton;
-import com.seattlesolvers.solverslib.command.button.Trigger;
 import com.seattlesolvers.solverslib.gamepad.GamepadEx;
 import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
 
@@ -29,7 +26,7 @@ import java.util.function.Supplier;
 
 @Configurable
 @TeleOp
-public class CommandDrive extends OpMode {
+public class ShootDrive extends OpMode {
     private Follower follower;
     public static Pose startingPose; //See ExampleAuto to understand how to use this
     private boolean automatedDrive;
@@ -51,7 +48,6 @@ public class CommandDrive extends OpMode {
     boolean isIntaking = false;
     Hardware.Teams team = Hardware.Teams.BLUE;
     Hardware robot;
-    Hardware.VelocityLUT velLUT = new Hardware.VelocityLUT();
     GamepadEx driverGamepad;
     private Supplier<PathChain> toRedBase;
     private Supplier<PathChain> toBlueBase;
@@ -116,52 +112,6 @@ public class CommandDrive extends OpMode {
         follower.update();
         telemetryM.update();
 
-        if (!automatedDrive) {
-
-            if (headingLock) {
-                Pose positionToPoint = new Pose(0, 0);
-                if (team == Hardware.Teams.BLUE) {
-                    positionToPoint = new Pose(10, 130);
-                } else if (team == Hardware.Teams.RED) {
-                    positionToPoint = new Pose(130, 130);
-                }
-                Pose currentPosition = follower.getPose();
-                targetHeading = (-1 * Math.atan(
-                        (positionToPoint.getX() - currentPosition.getX())
-                                /
-                                (positionToPoint.getY() - currentPosition.getY())
-                ));
-                if (positionToPoint.getY() < 0) {
-                    targetHeading = targetHeading - (Math.PI / 2);
-                } else {
-                    targetHeading = targetHeading + (Math.PI / 2);
-                }
-
-                headingError = targetHeading - follower.getHeading();
-                headingPIDController.setCoefficients(follower.constants.coefficientsHeadingPIDF);
-                headingPIDController.updateError(headingError);
-
-                follower.setTeleOpDrive(
-                        -gamepad1.left_stick_y,
-                        -gamepad1.left_stick_x,
-                        headingPIDController.run(),
-                        false,
-                        headingOffset
-                );
-            } else {
-                follower.setTeleOpDrive(
-                        -gamepad1.left_stick_y,
-                        -gamepad1.left_stick_x,
-                        -gamepad1.right_stick_x * 0.7,
-                        false,
-                        headingOffset
-                );
-            }
-        }
-
-        if (gamepad1.yWasPressed()) {
-            headingOffset = follower.getHeading();
-        }
         if (gamepad1.aWasPressed()) {
             isIntaking = !isIntaking;
         }
@@ -197,20 +147,21 @@ public class CommandDrive extends OpMode {
             robot.intakeFront.stop();
             robot.intakeBack.stop();
         }
+
         if (gamepad1.dpadLeftWasPressed()) {
-            sorterTargetAngle = sorterTargetAngle + 0.05;
-            robot.shooterRight.pitchServo.setPosition(sorterTargetAngle);
-            robot.shooterLeft.pitchServo.setPosition(sorterTargetAngle);
+            sorterTargetAngle = sorterTargetAngle + 0.1;
+            robot.shooterRight.setPitchAngle(sorterTargetAngle, false);
+            robot.shooterLeft.setPitchAngle(sorterTargetAngle, true);
         } else if (gamepad1.dpadRightWasPressed()) {
-            sorterTargetAngle = sorterTargetAngle - 0.05;
-            robot.shooterRight.pitchServo.setPosition(sorterTargetAngle);
-            robot.shooterLeft.pitchServo.setPosition(sorterTargetAngle);
+            sorterTargetAngle = sorterTargetAngle - 0.1;
+            robot.shooterRight.setPitchAngle(sorterTargetAngle, false);
+            robot.shooterLeft.setPitchAngle(sorterTargetAngle, true);
         }
 
         if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
-            double[] velLutOutput = velLUT.get(Hardware.distanceToGoal(team, follower.getPose()));
-            targetVelocity = velLutOutput[0];
-            targetAngle = velLutOutput[1];
+            //double[] velLutOutput = velLUT.get(Hardware.distanceToGoal(team, follower.getPose()));
+            //targetVelocity = velLutOutput[0];
+            //targetAngle = velLutOutput[1];
             if (!gamepad1.b) {
                 headingLock = true;
             } else {
@@ -368,7 +319,7 @@ public class CommandDrive extends OpMode {
             chute = robot.chuteRight;
         }
 
-        shooter.setPitchAngle(targetAngle, isLeftSide);
+        //shooter.setPitchAngle(targetAngle, isLeftSide);
         keepShooterAtVelocity(shooter, targetPosition);
 
         if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 60 && !(isLeftSide ? leftIsShooting : rightIsShooting)) {

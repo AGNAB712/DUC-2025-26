@@ -213,6 +213,10 @@ public class BlueBasic extends OpMode {
         follower.update();
         autonomousPathUpdate();
 
+        if (opmodeTimer.seconds() >= 29) {
+            robot.endPositionBlackboard.set(follower.getPose());
+        }
+
         // Feedback to Driver Hub for debugging
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());

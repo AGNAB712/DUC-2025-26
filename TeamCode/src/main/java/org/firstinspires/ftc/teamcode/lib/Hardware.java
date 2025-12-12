@@ -139,21 +139,33 @@ public class Hardware {
         InterpLUT lut;
         public VelocityLUT() {
             lut = new InterpLUT();
-            lut.add(-1000, 1299);
+            /*lut.add(-1000, 1299);
             lut.add(29, 1300);
             lut.add(49, 1475);
             lut.add(74, 1600);
             lut.add(111, 1850);
             lut.add(123, 1870);
+            lut.add(1000, 1951);*/
+            lut.add(-1000, 1199);
+            lut.add(29, 1200);
+            lut.add(35, 1200);
+            lut.add(55, 1325);
+            lut.add(80, 1500);
+            lut.add(111, 1850);
+            lut.add(123, 1870);
             lut.add(1000, 1951);
+
+            //35 should be max angle, 1200 vel
+            //55 should be max angle, 1325 vel
+            //80 should be max angle, 1500 vel
 
             lut.createLUT();
         }
 
         public double[] get(double distance) {
-            double angleToReturn = 0;
-            if (distance > 100) {
-                angleToReturn = 17;
+            double angleToReturn = 1;
+            if (distance > 34) {
+                angleToReturn = 0;
             }
             return new double[]{lut.get(distance), angleToReturn};
         }
@@ -280,12 +292,12 @@ public class Hardware {
         public double getPitchAngle() {
             return ((pitchServo.getAngle() - 195) / 195) * -20;
         }
-        public void setPitchAngle(double pitchToPoint, boolean isInverted) {
-            double clampedAngle = clamp(pitchToPoint, 0, 20);
-            if (isInverted) {
-                clampedAngle = 20 - clampedAngle;
+        public void setPitchAngle(double pitchToPoint, boolean isLeftSide) {
+            if (isLeftSide) {
+                pitchServo.setPosition((pitchToPoint * 0.5) + 0.5);
+            } else {
+                pitchServo.setPosition(((1-pitchToPoint) * 0.85) + 0.15);
             }
-            pitchServo.turnToAngle((clampedAngle / 17) * 195);
         }
     }
 

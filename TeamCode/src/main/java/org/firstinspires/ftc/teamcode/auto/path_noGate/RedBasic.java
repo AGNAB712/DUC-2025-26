@@ -124,14 +124,16 @@ public class RedBasic extends OpMode {
             case 100:
                 if (!follower.isBusy()) { //make this a function later PLEASE.....
                     if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(101);
                         }
                     } else {
-                        shoot(velocityForMidShooting, 0, false);
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;
@@ -143,14 +145,16 @@ public class RedBasic extends OpMode {
             case 101:
                 if (!follower.isBusy()) {
                     if (sequence.get(1) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(102);
                         }
                     } else {
-                        shoot(velocityForMidShooting, 0, false);
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;
@@ -162,14 +166,16 @@ public class RedBasic extends OpMode {
             case 102:
                 if (!follower.isBusy()) {
                     if (sequence.get(2) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(shootToResetTo);
                         }
                     } else {
-                        shoot(velocityForMidShooting, 0, false);
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;
