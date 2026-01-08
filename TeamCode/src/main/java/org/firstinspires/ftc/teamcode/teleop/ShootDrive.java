@@ -12,6 +12,7 @@ import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.Range;
 import com.seattlesolvers.solverslib.command.CommandScheduler;
 import com.seattlesolvers.solverslib.command.button.Button;
 import com.seattlesolvers.solverslib.command.button.GamepadButton;
@@ -61,6 +62,8 @@ public class ShootDrive extends OpMode {
     boolean rightIsShooting = false;
     boolean manualSorting = true;
     Commands commandsList;
+    PIDFController shooterVelocityPIDController;
+    static PIDFCoefficients shooterVelPIDCoeffs = new PIDFCoefficients(0.03, 0.0, 0.00001, 0);
 
     @Override
     public void init() {
@@ -89,6 +92,8 @@ public class ShootDrive extends OpMode {
                 .addPath(new Path(new BezierLine(follower::getPose, new Pose(104, 33.5))))
                 .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(90), 0.8))
                 .build();
+
+        shooterVelocityPIDController = new PIDFController(shooterVelPIDCoeffs);
 
         Button intakeButton = new GamepadButton(
                 driverGamepad, GamepadKeys.Button.A
@@ -172,7 +177,8 @@ public class ShootDrive extends OpMode {
         }
 
         if (gamepad1.right_trigger > 0) {
-            shoot(targetVelocity, targetAngle, false);
+            //shoot(targetVelocity, targetAngle, false);
+            keepShooterAtVelocity(robot.shooterLeft, targetVelocity);
         } else {
             if (rightShooterKeepAtVelocity) {
                 keepShooterAtVelocity(robot.shooterRight, 1000);
@@ -355,10 +361,17 @@ public class ShootDrive extends OpMode {
         lastVelocityRight = robot.shooterRight.launcherMotor.getCorrectedVelocity();
     }
     void keepShooterAtVelocity(Hardware.Shooter shooter, double targetPosition) {
-        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
-            shooter.launcherMotor.set(0.001);
-        } else {
-            shooter.launcherMotor.set(1);
+        double error = targetPosition - shooter.launcherMotor.getCorrectedVelocity();
+        shooterVelocityPIDController.updateError(error);
+        double power = shooterVelocityPIDController.run();
+        if (error < 0) {
+            power = 0;
         }
+        double powerClamped = Range.clip(power, 0, 1);
+        telemetry.addData("power", power);
+        telemetry.addData("error", error);
+        shooter.launcherMotor.set(powerClamped);
+
+        //shooter.launcherMotor.set(targetPosition);
     }
 }
