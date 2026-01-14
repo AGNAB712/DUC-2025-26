@@ -49,6 +49,7 @@ public class CommandDrive extends OpMode {
     double headingOffset = 0;
     double velocityError = 0;
     double thePowerForTheLauncher = 0;
+    static double velocityOffset = -100;
     boolean isIntaking = false;
     Hardware.Teams team = Hardware.Teams.BLUE;
     Hardware robot;
@@ -65,6 +66,7 @@ public class CommandDrive extends OpMode {
     boolean leftIsShooting = false;
     boolean rightIsShooting = false;
     boolean manualSorting = true;
+    double manualLock = 0;
     Commands commandsList;
     PIDFController shooterVelocityPIDController;
     static PIDFCoefficients shooterVelPIDCoeffs = new PIDFCoefficients(0.03, 0.0, 0.00001, 0);
@@ -215,7 +217,7 @@ public class CommandDrive extends OpMode {
 
         if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
             double[] velLutOutput = velLUT.get(Hardware.distanceToGoal(team, follower.getPose()));
-            //targetVelocity = velLutOutput[0];
+            targetVelocity = velLutOutput[0] + velocityOffset;
             targetAngle = velLutOutput[1];
             if (!gamepad1.b) {
                 headingLock = true;
@@ -343,8 +345,19 @@ public class CommandDrive extends OpMode {
             Pose newPosition = robot.getPositionFromAprilTag();
             if (newPosition.getX() != 0 && newPosition.getY() != 0) {
                 follower.setPose(newPosition);
+                gamepad1.rumble(500);
             }
         }
+        if (gamepad2.shareWasPressed()) {
+            Pose newPosition = new Pose(72, 72, 0);
+            if (newPosition.getX() != 0 && newPosition.getY() != 0) {
+                follower.setPose(newPosition);
+                gamepad1.rumble(500);
+            }
+        }
+
+        manualLock+=gamepad1.right_stick_y*0.01;
+        //robot.lock.chuteLock.setPosition(manualLock);
 
 
 
@@ -365,6 +378,7 @@ public class CommandDrive extends OpMode {
         telemetryM.addData("pitch right", robot.shooterRight.pitchServo.getPosition());
         telemetryM.addData("pitch left", robot.shooterLeft.pitchServo.getPosition());
         telemetryM.addData("is in danger zone?", robot.isInDangerZone(follower.getPose(), team));
+        telemetryM.addData("lock", manualLock);
 
         telemetryM.update(telemetry);
     }
@@ -427,7 +441,7 @@ public class CommandDrive extends OpMode {
         double error = targetPosition - shooter.launcherMotor.getCorrectedVelocity();
         shooterVelocityPIDController.updateError(error);
         double power = shooterVelocityPIDController.run();
-        if (error < 0) {
+        if (power < 0) {
             power = 0;
         }
         double powerClamped = Range.clip(power, 0, 1);

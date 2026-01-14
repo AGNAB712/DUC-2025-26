@@ -37,6 +37,7 @@ public class ShootDrive extends OpMode {
     private boolean slowMode = false;
     static boolean headingLock = false;
     double targetHeading = Math.toRadians(90);
+    Hardware.VelocityLUT velLUT = new Hardware.VelocityLUT();
     double leftAtVelTicks = 0;
     double rightAtVelTicks = 0;
     static double targetVelocity = 1500;
@@ -61,6 +62,7 @@ public class ShootDrive extends OpMode {
     boolean leftIsShooting = false;
     boolean rightIsShooting = false;
     boolean manualSorting = true;
+    static double testPower = 0;
     Commands commandsList;
     PIDFController shooterVelocityPIDController;
     static PIDFCoefficients shooterVelPIDCoeffs = new PIDFCoefficients(0.03, 0.0, 0.00001, 0);
@@ -368,9 +370,9 @@ public class ShootDrive extends OpMode {
             power = 0;
         }
         double powerClamped = Range.clip(power, 0, 1);
-        telemetry.addData("power", power);
+        //telemetry.addData("power", velLUT.distanceToPower(testPower));
         telemetry.addData("error", error);
-        shooter.launcherMotor.set(powerClamped);
+        //shooter.launcherMotor.set(velLUT.distanceToPower(testPower));
 
         //shooter.launcherMotor.set(targetPosition);
     }

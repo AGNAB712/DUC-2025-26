@@ -58,7 +58,7 @@ public class Hardware {
     public Lock lock;
     public AprilTagProcessor aprilTag;
     public VisionPortal visionPortal;
-    public Position cameraPosition = new Position(DistanceUnit.INCH, 0, 4, 14.75, 0);
+    public Position cameraPosition = new Position(DistanceUnit.INCH, 0, 12, 14.75, 0);
     public YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -90, -90, 0);
 
     public static List<ArtifactType> sequence = new ArrayList<>();
@@ -145,29 +145,36 @@ public class Hardware {
 
     public static class VelocityLUT {
         InterpLUT lut;
+        InterpLUT powerLut;
         public VelocityLUT() {
             lut = new InterpLUT();
-            /*lut.add(-1000, 1299);
-            lut.add(29, 1300);
-            lut.add(49, 1475);
-            lut.add(74, 1600);
-            lut.add(111, 1850);
-            lut.add(123, 1870);
-            lut.add(1000, 1951);*/
-            lut.add(-1000, 1199);
-            lut.add(29, 1200);
-            lut.add(35, 1200);
-            lut.add(55, 1325);
-            lut.add(80, 1500);
-            lut.add(111, 1850);
-            lut.add(123, 1870);
-            lut.add(1000, 1951);
+            lut.add(-1000, 1199-100);
+            lut.add(29, 1200-100);
+            lut.add(35, 1200-100);
+            lut.add(55, 1325-100);
+            lut.add(80, 1500-100);
+            lut.add(111, 1850-300);
+            lut.add(123, 1870-300);
+            lut.add(1000, 1951-300); //the random -stuff here
+
+            powerLut = new InterpLUT();
+            powerLut.add(160, 0.1);
+            powerLut.add(370, 0.2);
+            powerLut.add(660, 0.3);
+            powerLut.add(930, 0.4);
+            powerLut.add(1140, 0.5);
+            powerLut.add(1410, 0.6);
+            powerLut.add(1640, 0.7);
+            powerLut.add(1900, 0.8);
+            powerLut.add(2120, 0.9);
+
 
             //35 should be max angle, 1200 vel
             //55 should be max angle, 1325 vel
             //80 should be max angle, 1500 vel
 
             lut.createLUT();
+            powerLut.createLUT();
         }
 
         public double[] get(double distance) {
@@ -176,6 +183,10 @@ public class Hardware {
                 angleToReturn = 0;
             }
             return new double[]{lut.get(distance), angleToReturn};
+        }
+
+        public double velocityToPower(double distance) {
+            return powerLut.get(distance);
         }
     }
 
@@ -214,12 +225,12 @@ public class Hardware {
         public void open() {
             isOpen = true;
 
-            chuteLock.setPosition(0.25);
+            chuteLock.setPosition(0);
         }
         public void close() {
             isOpen = false;
 
-            chuteLock.setPosition(0);
+            chuteLock.setPosition(0.69);
         }
     }
 
@@ -274,7 +285,7 @@ public class Hardware {
             launcherMotor = myLauncherMotor;
             launcherMotor.setInverted(isInverted);
             launcherMotor.stopMotor();
-            launcherMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
+            //launcherMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         }
 
 
@@ -677,8 +688,8 @@ public class Hardware {
         double headingToReturn = 0;
         for (AprilTagDetection detection : currentDetections) {
             if (detection.id == 24 || detection.id == 20) {
-                yToReturn = (-detection.robotPose.getPosition().x - 6.5) + 72;
-                xToReturn = (detection.robotPose.getPosition().y - 5) + 72;
+                yToReturn = (-detection.robotPose.getPosition().x) + 72;
+                xToReturn = (detection.robotPose.getPosition().y) + 72;
                 headingToReturn = Math.toRadians(detection.robotPose.getOrientation().getYaw());
             }
         }
