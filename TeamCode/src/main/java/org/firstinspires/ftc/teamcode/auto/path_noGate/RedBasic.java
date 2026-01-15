@@ -1,10 +1,14 @@
 package org.firstinspires.ftc.teamcode.auto.path_noGate;
 
+import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.control.PIDFController;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.lib.Hardware;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -14,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Autonomous(name = "RedBasic", group = "nogate")
+@Configurable
 public class RedBasic extends OpMode {
 
     private Follower follower;
@@ -31,11 +36,15 @@ public class RedBasic extends OpMode {
     boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
-    double velocityForMidShooting = 1525;
+    static double velocityForMidShooting = 1200;
+    int rightTicks = 0;
+    int leftTicks = 0;
     int shootToResetTo = 0;
     int timesHasShot = 0;
+    PIDFController shooterVelocityPIDController;
     boolean sorterGoesCrazy = false;
     public List<Hardware.ArtifactType> sequence = new ArrayList<>();
+    static PIDFCoefficients shooterVelPIDCoeffs = new PIDFCoefficients(0.03, 0.0, 0.00001, 0);
 
     public void buildPaths() {
         pathMaster = new RedPath(follower);
@@ -44,8 +53,11 @@ public class RedBasic extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
-                follower.followPath(pathMaster.StartToTag);
-                setPathState(1);
+                follower.followPath(pathMaster.StartToShoot);
+                sequence.add(Hardware.ArtifactType.PURPLE);
+                sequence.add(Hardware.ArtifactType.GREEN);
+                sequence.add(Hardware.ArtifactType.PURPLE);
+                setPathState(2);
                 break;
             case 1:
                 if (!follower.isBusy()) {
@@ -72,10 +84,12 @@ public class RedBasic extends OpMode {
                 }
                 break;
             case 2:
+                keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (!follower.isBusy()) {
                     follower.followPath(pathMaster.TagToShoot);
                     shootToResetTo = 3;
-                    setPathState(100);
+                    setPathState(104);
                 }
                 break;
 
@@ -120,7 +134,19 @@ public class RedBasic extends OpMode {
                 break;
 
 
-
+            case 104:
+                if (!follower.isBusy()) {
+                    shoot(velocityForMidShooting, 17, false);
+                    shoot(velocityForMidShooting, 17, true);
+                    if (leftHasShot && rightHasShot) {
+                        leftHasShot = false;
+                        rightHasShot = false;
+                        lastVelocityLeft = 0;
+                        lastVelocityRight = 0;
+                        setPathState(102);
+                    }
+                }
+                break;
             case 100:
                 if (!follower.isBusy()) { //make this a function later PLEASE.....
                     if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
@@ -131,7 +157,7 @@ public class RedBasic extends OpMode {
                             lastVelocityLeft = 0;
                             setPathState(101);
                         }
-                    } else {
+                    } else if (sequence.get(0) == Hardware.ArtifactType.PURPLE) {
                         keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
                         shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
@@ -192,11 +218,6 @@ public class RedBasic extends OpMode {
                 robot.sorter.updateServo(detectedFront, false);
             }*/
         robot.sorter.purple(false);
-
-        if (pathState < 100) {
-            keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
-            keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
-        }
     }
 
     /**
@@ -232,6 +253,8 @@ public class RedBasic extends OpMode {
         telemetry.addData("shooting right", rightIsShooting);
         telemetry.addData("launcherPower right", robot.shooterRight.launcherMotor.getCorrectedVelocity());
         telemetry.addData("launcherPower left", robot.shooterLeft.launcherMotor.getCorrectedVelocity());
+        telemetry.addData("leftTicks", leftTicks);
+        telemetry.addData("rightTicks", rightTicks);
         telemetry.addData("has shot left", leftHasShot);
         telemetry.addData("has shot right", rightHasShot);
 
@@ -249,6 +272,8 @@ public class RedBasic extends OpMode {
         opmodeTimer = new ElapsedTime();
         opmodeTimer.reset();
         robot = new Hardware(hardwareMap);
+
+        shooterVelocityPIDController = new PIDFController(shooterVelPIDCoeffs);
 
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
@@ -292,32 +317,26 @@ public class RedBasic extends OpMode {
             chute = robot.chuteRight;
         }
 
-        if (targetAngle < 17) { //up
-            if (isLeftSide) {
-                shooter.pitchServo.setPosition(1);
-            } else {
-                shooter.pitchServo.setPosition(0.15);
-            }
-        } else { //down
-            if (isLeftSide) {
-                shooter.pitchServo.setPosition(0.1); //0.1
-            } else {
-                shooter.pitchServo.setPosition(0.65); //0.65
-            }
-        }
-
-        //shooter.setPitchAngle(targetAngle, isLeftSide);
         keepShooterAtVelocity(shooter, targetPosition);
 
-        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 60 && !(isLeftSide ? leftIsShooting : rightIsShooting)) {
+        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition - 20 &&
+            shooter.launcherMotor.getCorrectedVelocity() < targetPosition + 20 &&
+            !(isLeftSide ? leftIsShooting : rightIsShooting)) {
+            if(isLeftSide) {leftTicks++;} else {rightTicks++;}
+        } else {
+            //if(isLeftSide) {leftTicks=0;} else {rightTicks=0;}
+        }
+
+        if (isLeftSide ? leftTicks > 1 : rightTicks > 1) {
             if (isLeftSide) {
                 leftIsShooting = true;
                 gamepad1.setLedColor(0, 1, 0, 500);
+                leftTicks = 0;
             } else {
                 rightIsShooting = true;
                 gamepad1.setLedColor(0.5, 0, 0.5, 500);
+                rightTicks = 0;
             }
-
         }
 
         if (isLeftSide ? leftIsShooting : rightIsShooting) {
@@ -343,11 +362,16 @@ public class RedBasic extends OpMode {
         lastVelocityRight = robot.shooterRight.launcherMotor.getCorrectedVelocity();
     }
     void keepShooterAtVelocity(Hardware.Shooter shooter, double targetPosition) {
-        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
-            shooter.launcherMotor.set(0.001);
-        } else {
-            shooter.launcherMotor.set(1);
+        double error = targetPosition - shooter.launcherMotor.getCorrectedVelocity();
+        shooterVelocityPIDController.updateError(error);
+        double power = shooterVelocityPIDController.run();
+        if (power < 0) {
+            power = 0;
         }
+        double powerClamped = Range.clip(power, 0, 1);
+        telemetry.addData("power", power);
+        telemetry.addData("error", error);
+        shooter.launcherMotor.set(powerClamped);
     }
 
 }

@@ -49,7 +49,7 @@ public class CommandDrive extends OpMode {
     double headingOffset = 0;
     double velocityError = 0;
     double thePowerForTheLauncher = 0;
-    static double velocityOffset = -100;
+    static double velocityOffset = 0;
     boolean isIntaking = false;
     Hardware.Teams team = Hardware.Teams.BLUE;
     Hardware robot;
