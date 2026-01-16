@@ -58,7 +58,7 @@ public class Hardware {
     public Lock lock;
     public AprilTagProcessor aprilTag;
     public VisionPortal visionPortal;
-    public Position cameraPosition = new Position(DistanceUnit.INCH, 0, 12, 14.75, 0);
+    public Position cameraPosition = new Position(DistanceUnit.INCH, 0, 8, 12.5, 0);
     public YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -90, -90, 0);
 
     public static List<ArtifactType> sequence = new ArrayList<>();
@@ -688,8 +688,8 @@ public class Hardware {
         double headingToReturn = 0;
         for (AprilTagDetection detection : currentDetections) {
             if (detection.id == 24 || detection.id == 20) {
-                yToReturn = (-detection.robotPose.getPosition().x) + 72;
-                xToReturn = (detection.robotPose.getPosition().y) + 72;
+                yToReturn = (-detection.robotPose.getPosition().x - 4) + 72;
+                xToReturn = (detection.robotPose.getPosition().y - 4) + 72;
                 headingToReturn = Math.toRadians(detection.robotPose.getOrientation().getYaw());
             }
         }
