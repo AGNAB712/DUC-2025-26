@@ -25,7 +25,7 @@ public class BlueFar extends OpMode {
     private int pathState;
     public Hardware robot;
     public BluePath pathMaster;
-    static double targetVelocity = 1500;
+    static double targetVelocity = 1200;
     double lastVelocityLeft = 0;
     double lastVelocityRight = 0;
     double atVelTicks = 0;

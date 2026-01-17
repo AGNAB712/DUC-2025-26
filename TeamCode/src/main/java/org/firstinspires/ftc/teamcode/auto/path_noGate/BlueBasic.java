@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.auto.path_noGate;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -37,6 +38,7 @@ public class BlueBasic extends OpMode {
     int timesHasShot = 0;
     boolean sorterGoesCrazy = false;
     ElapsedTime shotTimer = new ElapsedTime(100000000);
+    Hardware.VelocityLUT velLUT = new Hardware.VelocityLUT();
     public List<Hardware.ArtifactType> sequence = new ArrayList<>();
 
     public void buildPaths() {
@@ -46,34 +48,31 @@ public class BlueBasic extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
-                follower.followPath(pathMaster.StartToTag);
+                follower.followPath(pathMaster.StartToShoot);
+                sequence.add(Hardware.ArtifactType.GREEN);
+                sequence.add(Hardware.ArtifactType.PURPLE);
+                sequence.add(Hardware.ArtifactType.PURPLE);
                 setPathState(1);
                 break;
             case 1:
+                keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (!follower.isBusy()) {
-                    List<AprilTagDetection> currentDetections = robot.aprilTag.getDetections();
-
-                    for (AprilTagDetection detection : currentDetections) {
-                        if (detection.id == 21) { //once again.... make this a function... please
-                            sequence.add(Hardware.ArtifactType.GREEN);
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            setPathState(2);
-                        } else if (detection.id == 22) {
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            sequence.add(Hardware.ArtifactType.GREEN);
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            setPathState(2);
-                        } else if (detection.id == 23) {
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            sequence.add(Hardware.ArtifactType.PURPLE);
-                            sequence.add(Hardware.ArtifactType.GREEN);
-                            setPathState(2);
-                        }
+                    Pose newPosition = robot.getPositionFromAprilTag();
+                    shootToResetTo = 3;
+                    if (pathTimer.getElapsedTimeSeconds() > 5) {
+                        setPathState(100);
+                    }
+                    if ((newPosition.getX() != 0 && newPosition.getY() != 0)) {
+                        follower.setPose(newPosition);
+                        velocityForMidShooting = velLUT.get(Hardware.distanceToGoal(Hardware.Teams.BLUE, follower.getPose()))[0];
+                        setPathState(100);
                     }
                 }
                 break;
             case 2:
+                keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (!follower.isBusy()) {
                     follower.followPath(pathMaster.TagToShoot);
                     shootToResetTo = 3;
@@ -88,7 +87,13 @@ public class BlueBasic extends OpMode {
                     robot.chuteRight.start();
                     robot.chuteLeft.start();
                     robot.lock.close();
-                    follower.followPath(pathMaster.ShootToLOne, true);
+                    follower.followPath(follower
+                            .pathBuilder()
+                            .addPath(
+                                    new BezierLine(follower.getPose(), new Pose(45.360, 83.520))
+                            )
+                            .setLinearHeadingInterpolation(follower.getPose().getHeading(), 0)
+                            .build(), true);
                     setPathState(4);
                 }
                 break;
@@ -122,18 +127,45 @@ public class BlueBasic extends OpMode {
                 break;
 
 
-
+            case 104:
+                if (!follower.isBusy()) {
+                    shoot(velocityForMidShooting, 17, false);
+                    shoot(velocityForMidShooting, 17, true);
+                    if (leftHasShot && rightHasShot) {
+                        leftHasShot = false;
+                        rightHasShot = false;
+                        lastVelocityLeft = 0;
+                        lastVelocityRight = 0;
+                        setPathState(105);
+                    }
+                }
+                break;
+            case 105:
+                if (!follower.isBusy()) {
+                    robot.shooterLeft.stop();
+                    shoot(velocityForMidShooting, 17, false);
+                    if (rightHasShot) {
+                        rightHasShot = false;
+                        lastVelocityRight = 0;
+                        setPathState(shootToResetTo);
+                    }
+                }
             case 100:
                 if (!follower.isBusy()) { //make this a function later PLEASE.....
+                    if (opmodeTimer.milliseconds() > 28000) {
+                        setPathState(6);
+                    }
                     if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(101);
                         }
-                    } else {
-                        shoot(velocityForMidShooting, 0, false);
+                    } else if (sequence.get(0) == Hardware.ArtifactType.PURPLE) {
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;
@@ -144,15 +176,20 @@ public class BlueBasic extends OpMode {
                 break;
             case 101:
                 if (!follower.isBusy()) {
+                    if (opmodeTimer.milliseconds() > 28000) {
+                        setPathState(6);
+                    }
                     if (sequence.get(1) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(102);
                         }
                     } else {
-                        shoot(velocityForMidShooting, 0, false);
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;
@@ -163,15 +200,20 @@ public class BlueBasic extends OpMode {
                 break;
             case 102:
                 if (!follower.isBusy()) {
+                    if (opmodeTimer.milliseconds() > 28000) {
+                        setPathState(6);
+                    }
                     if (sequence.get(2) == Hardware.ArtifactType.GREEN) {
-                        shoot(velocityForMidShooting, 0, true);
+                        keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, true);
                         if (leftHasShot) {
                             leftHasShot = false;
                             lastVelocityLeft = 0;
                             setPathState(shootToResetTo);
                         }
                     } else {
-                        shoot(velocityForMidShooting, 0, false);
+                        keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                        shoot(velocityForMidShooting, 17, false);
                         if (rightHasShot) {
                             rightHasShot = false;
                             lastVelocityRight = 0;

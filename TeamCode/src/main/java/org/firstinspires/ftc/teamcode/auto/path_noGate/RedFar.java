@@ -25,7 +25,7 @@ public class RedFar extends OpMode {
     private int pathState;
     public Hardware robot;
     public RedPath pathMaster;
-    static double targetVelocity = 1500;
+    static double targetVelocity = 1300;
     double lastVelocityLeft = 0;
     double lastVelocityRight = 0;
     double atVelTicks = 0;
