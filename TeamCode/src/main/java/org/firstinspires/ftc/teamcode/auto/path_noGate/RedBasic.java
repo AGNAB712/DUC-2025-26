@@ -75,7 +75,7 @@ public class RedBasic extends OpMode {
                     }
                     if ((newPosition.getX() != 0 && newPosition.getY() != 0)) {
                         follower.setPose(newPosition);
-                        velocityForMidShooting = velLUT.get(Hardware.distanceToGoal(Hardware.Teams.RED, follower.getPose()))[0];
+                        velocityForMidShooting = velLUT.get(Hardware.distanceToGoal(Hardware.Teams.RED, follower.getPose()))[0]-100;
                         setPathState(100);
                     }
                 }
@@ -121,6 +121,10 @@ public class RedBasic extends OpMode {
                     sequence.add(Hardware.ArtifactType.PURPLE);
                     sequence.add(Hardware.ArtifactType.PURPLE);
                     sequence.add(Hardware.ArtifactType.PURPLE);
+                    robot.intakeFront.stop();
+                    robot.intakeBack.stop();
+                    robot.chuteRight.stop();
+                    robot.chuteLeft.stop();
                     setPathState(100);
                 }
                 break;

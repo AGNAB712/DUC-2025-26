@@ -33,7 +33,7 @@ public class RedFar extends OpMode {
     boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
-    static double velocityForMidShooting = 1825;
+    static double velocityForMidShooting = 1625-100;
     int shootToResetTo = 0;
     int timesHasShot = 0;
     static int delaySeconds = 5;
@@ -70,6 +70,8 @@ public class RedFar extends OpMode {
                 }
                 break;
             case 1:
+                keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (!follower.isBusy()) {
                     follower.followPath(pathMaster.FarStartToShoot);
                     shootToResetTo = 2;
@@ -92,6 +94,8 @@ public class RedFar extends OpMode {
                 break;
 
             case 4:
+                keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (opmodeTimer.seconds() >= delaySeconds) {
                     setPathState(1);
                 }
@@ -102,6 +106,8 @@ public class RedFar extends OpMode {
 
             case 100:
                 if (!follower.isBusy()) { //make this a function later PLEASE.....
+                    keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                    keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                     if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
                         keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                         shoot(velocityForMidShooting, 17, true);

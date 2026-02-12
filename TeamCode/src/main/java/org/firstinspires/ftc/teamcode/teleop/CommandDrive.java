@@ -25,6 +25,7 @@ import com.seattlesolvers.solverslib.gamepad.GamepadKeys;
 import org.firstinspires.ftc.teamcode.lib.Commands;
 import org.firstinspires.ftc.teamcode.lib.Hardware;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.vision.VisionPortal;
 
 import java.util.function.Supplier;
 
@@ -49,7 +50,7 @@ public class CommandDrive extends OpMode {
     double headingOffset = 0;
     double velocityError = 0;
     double thePowerForTheLauncher = 0;
-    static double velocityOffset = 0;
+    static double velocityOffset = -100;
     boolean isIntaking = false;
     Hardware.Teams team = Hardware.Teams.BLUE;
     Hardware robot;
@@ -100,10 +101,6 @@ public class CommandDrive extends OpMode {
                 .addPath(new Path(new BezierLine(follower::getPose, new Pose(104, 33.5))))
                 .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(90), 0.8))
                 .build();
-
-        Button intakeButton = new GamepadButton(
-                driverGamepad, GamepadKeys.Button.A
-        ).toggleWhenPressed(commandsList.new RunIntake(robot.chuteRight, robot.chuteLeft, robot.intakeFront, robot.intakeBack, robot.lock));
     }
 
     @Override
@@ -116,6 +113,7 @@ public class CommandDrive extends OpMode {
         } else if (robot.teamBlackboard.get() == Hardware.Teams.BLUE) {
             team = Hardware.Teams.BLUE;
         }
+        robot.visionPortal.setActiveCamera(robot.webcam2);
     }
 
     @Override
@@ -128,7 +126,7 @@ public class CommandDrive extends OpMode {
             if (headingLock) {
                 Pose positionToPoint = new Pose(0, 0);
                 if (team == Hardware.Teams.BLUE) {
-                    positionToPoint = new Pose(10, 130);
+                    positionToPoint = new Pose(10, 140);
                 } else if (team == Hardware.Teams.RED) {
                     positionToPoint = new Pose(130, 130);
                 }
@@ -170,28 +168,37 @@ public class CommandDrive extends OpMode {
             headingOffset = follower.getHeading();
         }
         if (gamepad1.aWasPressed()) {
+            robot.lock.close();
             isIntaking = !isIntaking;
         }
         if (isIntaking) {
             if (gamepad1.dpad_down) {
-                robot.chuteLeft.reverse();
+                //robot.chuteLeft.reverse();
                 robot.chuteRight.reverse();
                 robot.intakeFront.reverse();
-                robot.intakeBack.reverse();
+                //robot.intakeBack.reverse();
             } else {
                 if (gamepad1.left_trigger < 0.5 && !robot.lock.isOpen) { //if we are not trying to shoot and the lock is closed
-                    robot.chuteLeft.start();
+                    //robot.chuteLeft.start();
                 } else if (!leftIsShooting) { //ok lock is probably open
                     robot.chuteLeft.stop();
                 }
-                if (gamepad1.right_trigger < 0.5 && !robot.lock.isOpen) {
+                if (gamepad1.right_trigger < 0.5 /*&& !robot.lock.isOpen*/) {
                     robot.chuteRight.start();
                 } else if (!rightIsShooting) {
                     robot.chuteRight.stop();
+
                 }
 
-                robot.intakeFront.start();
-                robot.intakeBack.start();
+                if (gamepad1.right_trigger > 0 || gamepad2.right_trigger > 0) {
+                    robot.intakeFront.stop();
+                    robot.intakeBack.stop();
+                } else {
+                    robot.intakeFront.start();
+                    //robot.intakeBack.start();
+                }
+
+
 
             }
         } else {
@@ -207,10 +214,13 @@ public class CommandDrive extends OpMode {
         if (!manualSorting) {
             if (gamepad1.dpad_left) {
                 robot.sorter.green(false);
+                robot.shooterLeft.setLEDColor(Hardware.ArtifactType.GREEN);
             } else if (gamepad1.dpad_right) {
                 robot.sorter.purple(false);
+                robot.shooterLeft.setLEDColor(Hardware.ArtifactType.PURPLE);
             } else if (gamepad1.dpadUpWasPressed()) {
                 robot.sorter.neutral();
+                robot.shooterLeft.setLEDColor(Hardware.ArtifactType.NONE);
             }
         }
 
@@ -296,9 +306,9 @@ public class CommandDrive extends OpMode {
             manualSorting = !manualSorting;
         }
 
-        if (robot.intakeFront.isRotating && !manualSorting && false /*temp*/) {
-            Hardware.ArtifactType detectedFront = robot.intakeFront.colorSensor.detectColor();
-            Hardware.ArtifactType detectedBack = robot.intakeBack.colorSensor.detectColor();
+        if (robot.intakeFront.isRotating && !manualSorting && false) {
+            Hardware.ArtifactType detectedFront = robot.getCameraArtifactColor();
+            Hardware.ArtifactType detectedBack = Hardware.ArtifactType.NONE;
             telemetryM.addData("dfront", detectedFront);
             telemetryM.addData("dback", detectedBack);
             if (detectedFront != Hardware.ArtifactType.NONE) {
@@ -307,15 +317,6 @@ public class CommandDrive extends OpMode {
                 robot.sorter.updateServo(detectedBack, true);
             } else {
                 robot.sorter.updateServo(Hardware.ArtifactType.NONE, false);
-            }
-        }
-        if (manualSorting) {
-            if (gamepad2.right_stick_x > 0.25) {
-                robot.sorter.green(false);
-            } else if (gamepad2.right_stick_x < -0.25) {
-                robot.sorter.purple(false);
-            } else {
-                robot.sorter.neutral();
             }
         }
 
@@ -342,10 +343,13 @@ public class CommandDrive extends OpMode {
         }
 
         if (gamepad1.shareWasPressed()) {
+            robot.visionPortal.setActiveCamera(robot.webcam1);
+
             Pose newPosition = robot.getPositionFromAprilTag();
             if (newPosition.getX() != 0 && newPosition.getY() != 0) {
                 follower.setPose(newPosition);
                 gamepad1.rumble(500);
+                robot.visionPortal.setActiveCamera(robot.webcam2);
             }
         }
         if (gamepad2.shareWasPressed()) {

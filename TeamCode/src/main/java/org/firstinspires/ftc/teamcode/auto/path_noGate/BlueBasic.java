@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.auto.path_noGate;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Autonomous(name = "BlueBasic", group = "nogate")
+@Configurable
 public class BlueBasic extends OpMode {
 
     private Follower follower;
@@ -33,11 +35,12 @@ public class BlueBasic extends OpMode {
     boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
-    double velocityForMidShooting = 1525;
+    double velocityForMidShooting = 1525-100;
     int shootToResetTo = 0;
     int timesHasShot = 0;
     boolean sorterGoesCrazy = false;
     ElapsedTime shotTimer = new ElapsedTime(100000000);
+    static Pose actualShootPos = new Pose(62, 82, Math.toRadians(130));
     Hardware.VelocityLUT velLUT = new Hardware.VelocityLUT();
     public List<Hardware.ArtifactType> sequence = new ArrayList<>();
 
@@ -48,6 +51,7 @@ public class BlueBasic extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
+
                 follower.followPath(pathMaster.StartToShoot);
                 sequence.add(Hardware.ArtifactType.GREEN);
                 sequence.add(Hardware.ArtifactType.PURPLE);
@@ -59,14 +63,16 @@ public class BlueBasic extends OpMode {
                 keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (!follower.isBusy()) {
                     Pose newPosition = robot.getPositionFromAprilTag();
-                    shootToResetTo = 3;
                     if (pathTimer.getElapsedTimeSeconds() > 5) {
-                        setPathState(100);
+                        setPathState(2);
                     }
                     if ((newPosition.getX() != 0 && newPosition.getY() != 0)) {
-                        follower.setPose(newPosition);
-                        velocityForMidShooting = velLUT.get(Hardware.distanceToGoal(Hardware.Teams.BLUE, follower.getPose()))[0];
-                        setPathState(100);
+                        follower.setPose(new Pose(newPosition.getX()+3, newPosition.getY()-4, newPosition.getHeading()));
+                        follower.breakFollowing();
+                        velocityForMidShooting = velLUT.get(Hardware.distanceToGoal(Hardware.Teams.BLUE, actualShootPos))[0]-100;
+                        velocityForMidShooting-=100;
+                        shootToResetTo = 3;
+                        setPathState(2);
                     }
                 }
                 break;
@@ -74,7 +80,13 @@ public class BlueBasic extends OpMode {
                 keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
                 keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.TagToShoot);
+                    follower.followPath(follower
+                            .pathBuilder()
+                            .addPath(
+                                    new BezierLine(follower.getPose(), actualShootPos.getPose())
+                            )
+                            .setLinearHeadingInterpolation(follower.getPose().getHeading(), actualShootPos.getPose().getHeading())
+                            .build(), true);
                     shootToResetTo = 3;
                     setPathState(100);
                 }
@@ -92,7 +104,7 @@ public class BlueBasic extends OpMode {
                             .addPath(
                                     new BezierLine(follower.getPose(), new Pose(45.360, 83.520))
                             )
-                            .setLinearHeadingInterpolation(follower.getPose().getHeading(), 0)
+                            .setLinearHeadingInterpolation(follower.getPose().getHeading(), Math.toRadians(180))
                             .build(), true);
                     setPathState(4);
                 }
@@ -105,12 +117,22 @@ public class BlueBasic extends OpMode {
                 break;
             case 5:
                 if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.LTwoToShoot, true);
+                    follower.followPath(follower
+                            .pathBuilder()
+                            .addPath(
+                                    new BezierLine(follower.getPose(), actualShootPos.getPose())
+                            )
+                            .setLinearHeadingInterpolation(follower.getPose().getHeading(), actualShootPos.getPose().getHeading())
+                            .build(), true);
                     shootToResetTo = 6;
                     sequence = new ArrayList<>();
                     sequence.add(Hardware.ArtifactType.PURPLE);
                     sequence.add(Hardware.ArtifactType.PURPLE);
                     sequence.add(Hardware.ArtifactType.PURPLE);
+                    robot.intakeFront.stop();
+                    robot.intakeBack.stop();
+                    robot.chuteRight.stop();
+                    robot.chuteLeft.stop();
                     setPathState(100);
                 }
                 break;

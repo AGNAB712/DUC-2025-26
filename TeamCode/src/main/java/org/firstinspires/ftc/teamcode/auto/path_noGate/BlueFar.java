@@ -1,11 +1,14 @@
 package org.firstinspires.ftc.teamcode.auto.path_noGate;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.control.PIDFController;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.lib.Hardware;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -33,12 +36,14 @@ public class BlueFar extends OpMode {
     boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
-    static double velocityForMidShooting = 1850;
+    static double velocityForMidShooting = 1650-100;
     int shootToResetTo = 0;
     int timesHasShot = 0;
     static int delaySeconds = 5;
     boolean sorterGoesCrazy = false;
     ElapsedTime shotTimer = new ElapsedTime(100000000);
+    PIDFController shooterVelocityPIDController;
+    static PIDFCoefficients shooterVelPIDCoeffs = new PIDFCoefficients(0.03, 0.0, 0.00001, 0);
     public List<Hardware.ArtifactType> sequence = new ArrayList<>();
 
     public void buildPaths() {
@@ -70,6 +75,8 @@ public class BlueFar extends OpMode {
                 }
                 break;
             case 1:
+                keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (!follower.isBusy()) {
                     follower.followPath(pathMaster.FarStartToShoot);
                     shootToResetTo = 2;
@@ -85,11 +92,15 @@ public class BlueFar extends OpMode {
                 break;
             case 3:
                 if (!follower.isBusy()) {
+                    robot.shooterRight.launcherMotor.set(0);
+                    robot.shooterLeft.launcherMotor.set(0);
                     setPathState(-1);
                 }
                 break;
 
             case 4:
+                keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (opmodeTimer.seconds() >= delaySeconds) {
                     setPathState(1);
                 }
@@ -99,6 +110,8 @@ public class BlueFar extends OpMode {
 
 
             case 100:
+                keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
+                keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (!follower.isBusy()) { //make this a function later PLEASE.....
                     if (sequence.get(0) == Hardware.ArtifactType.GREEN) {
                         keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
@@ -230,6 +243,7 @@ public class BlueFar extends OpMode {
         robot.teamBlackboard.set(Hardware.Teams.BLUE);
 
         follower = Constants.createFollower(hardwareMap);
+        shooterVelocityPIDController = new PIDFController(shooterVelPIDCoeffs);
         buildPaths();
         follower.setStartingPose(Poses.startFarPosition);
 
@@ -319,11 +333,16 @@ public class BlueFar extends OpMode {
         lastVelocityRight = robot.shooterRight.launcherMotor.getCorrectedVelocity();
     }
     void keepShooterAtVelocity(Hardware.Shooter shooter, double targetPosition) {
-        if (shooter.launcherMotor.getCorrectedVelocity() > targetPosition) {
-            shooter.launcherMotor.set(0.001);
-        } else {
-            shooter.launcherMotor.set(1);
+        double error = targetPosition - shooter.launcherMotor.getCorrectedVelocity();
+        shooterVelocityPIDController.updateError(error);
+        double power = shooterVelocityPIDController.run();
+        if (power < 0) {
+            power = 0;
         }
+        double powerClamped = Range.clip(power, 0, 1);
+        telemetry.addData("power", power);
+        telemetry.addData("error", error);
+        shooter.launcherMotor.set(powerClamped);
     }
 
 }

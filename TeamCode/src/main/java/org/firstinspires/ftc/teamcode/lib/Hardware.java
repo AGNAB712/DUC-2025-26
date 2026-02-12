@@ -7,6 +7,8 @@ import android.util.Size;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.control.PIDFController;
 import com.qualcomm.hardware.dfrobot.HuskyLens;
+import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.LED;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.seattlesolvers.solverslib.command.SubsystemBase;
 import com.seattlesolvers.solverslib.geometry.Vector2d;
@@ -23,7 +25,9 @@ import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.util.InterpLUT;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -33,6 +37,7 @@ import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.processors.ducProcessorArtifacts;
 import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.VisionProcessor;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
@@ -57,7 +62,10 @@ public class Hardware {
     public Intake intakeBack;
     public Lock lock;
     public AprilTagProcessor aprilTag;
+    public ducProcessorArtifacts ducProcessorArtifacts;
+
     public VisionPortal visionPortal;
+    public WebcamName webcam1, webcam2;
     public Position cameraPosition = new Position(DistanceUnit.INCH, 0, 8, 12.5, 0);
     public YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -90, -90, 0);
 
@@ -98,34 +106,53 @@ public class Hardware {
     public Hardware(HardwareMap hwMap) {
         this.hwMap = hwMap;
 
-        //expansion - servos
-        //0 intakeFront
-        //1 intakeBack
-        //2 rightChute
-        //3 leftChute
-        //expansion - motors
-        //0 frontLeft
-        //1 backLeft
-        //2 shooterRight
+        //CONFIG
+        //Webcam 1 - Intake camera
+        //Webcam 2 - Apriltag camera
 
-        //control - servos
-        //0 sorter
-        //1 lock
-        //2 pitchLeft
-        //3 pitchRight
-        //control - motors
-        //0 frontRight
-        //1 backRight
-        //2 shooterLeft
+        //Expansion:
+        //servos:
+        //0 - intakeFront
+        //1 - leftChute
+        //2 - intakeBack
+        //3 - rightChute
+        //NEED - ledLeft ledRight
+
+        //motors:
+        //0 - shooterLeft
+        //1 - liftLeft
+        //2 - frontLeft
+        //3 - backLeft
+
+        //i2c:
+        //bus 0 - lensBack
+        //NEED - colorSensorRight, colorSensorLeft
+
+        //Control:
+        //servos:
+        //0 - sorter
+        //1 - lock
+        //2 - pitchRight (deprecated)
+        //3 - pitchLeft (deprecated)
+
+        //motors:
+        //0 - shooterRight
+        //1 - liftRight
+        //2 - backRight
+        //3 - frontRight
+
+        //i2c:
+        //bus 1 - pinpoint
+        //bus 2 - lensFront (deprecated)
 
         intakeFront = new Intake(new CRServo(hwMap, "intakeFront"), hwMap.get(HuskyLens.class, "lensFront"), false);
         intakeBack = new Intake(new CRServo(hwMap, "intakeBack"), hwMap.get(HuskyLens.class, "lensBack"), true);
 
-        shooterRight = new Shooter(new SimpleServo(hwMap, "pitchRight", 0, 360), new MotorEx(hwMap, "shooterRight"), true);
-        shooterLeft = new Shooter(new SimpleServo(hwMap, "pitchLeft", 0, 360), new MotorEx(hwMap, "shooterLeft"), false);
+        shooterRight = new Shooter(new SimpleServo(hwMap, "pitchRight", 0, 360), new MotorEx(hwMap, "shooterRight"), true, hwMap.get(Servo.class, "ledRight"));
+        shooterLeft = new Shooter(new SimpleServo(hwMap, "pitchLeft", 0, 360), new MotorEx(hwMap, "shooterLeft"), false, hwMap.get(Servo.class, "ledLeft"));
 
-        chuteRight = new Chute(new CRServo(hwMap, "rightChute"));
-        chuteLeft = new Chute(new CRServo(hwMap, "leftChute"));
+        chuteRight = new Chute(new CRServo(hwMap, "rightChute"), hwMap.get(ColorSensor.class, "colorSensorRight"));
+        chuteLeft = new Chute(new CRServo(hwMap, "leftChute"), hwMap.get(ColorSensor.class, "colorSensorLeft"));
 
         lock = new Lock(new SimpleServo(hwMap, "lock", 0, 360));
         sorter = new Sorter(new SimpleServo(hwMap, "sorter", 0, 360));
@@ -136,11 +163,33 @@ public class Hardware {
         aprilTag = new AprilTagProcessor.Builder()
                 .setCameraPose(cameraPosition, cameraOrientation)
                 .build();
+        ducProcessorArtifacts = new ducProcessorArtifacts();
 
-        VisionPortal visionPortal = new VisionPortal.Builder()
-                .setCamera(hwMap.get(WebcamName.class, "Webcam 1"))
+        webcam1 = hwMap.get(WebcamName.class, "Webcam 1");
+        webcam2 = hwMap.get(WebcamName.class, "Webcam 2");
+        CameraName switchableCamera = ClassFactory.getInstance()
+                .getCameraManager().nameForSwitchableCamera(webcam1, webcam2);
+
+        visionPortal = new VisionPortal.Builder()
+                .setCamera(switchableCamera)
+                .addProcessor(ducProcessorArtifacts)
                 .addProcessor(aprilTag)
+                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
+                .enableLiveView(true)
+                //.setCameraResolution(new Size(160, 120))
                 .build();
+    }
+
+    public ArtifactType getCameraArtifactColor() {
+        double greenContours = ducProcessorArtifacts.getContourGreen();
+        double purpleContours = ducProcessorArtifacts.getContourPurple();
+        if (greenContours > purpleContours) {
+            return ArtifactType.GREEN;
+        }
+        if (greenContours < purpleContours) {
+            return ArtifactType.PURPLE;
+        }
+        return ArtifactType.NONE;
     }
 
     public static class VelocityLUT {
@@ -153,9 +202,9 @@ public class Hardware {
             lut.add(35, 1200-100);
             lut.add(55, 1325-100);
             lut.add(80, 1500-100);
-            lut.add(111, 1850-300);
-            lut.add(123, 1870-300);
-            lut.add(1000, 1951-300); //the random -stuff here
+            lut.add(111, 1850-200);
+            lut.add(123, 1870-200);
+            lut.add(1000, 1951-200); //the random -stuff here
 
             powerLut = new InterpLUT();
             powerLut.add(160, 0.1);
@@ -192,11 +241,13 @@ public class Hardware {
 
     public class Chute extends SubsystemBase {
         public CRServo spinny;
+        public ColorSensor colorSensor;
         public boolean isRotating = false;
 
-        public Chute(CRServo mySpinny) {
+        public Chute(CRServo mySpinny, ColorSensor myColorSensor) {
             spinny = mySpinny;
             spinny.setInverted(true);
+            colorSensor = myColorSensor;
         }
 
         public void setRotation(servoPositions newPosition) {
@@ -214,6 +265,10 @@ public class Hardware {
         public void stop() {setRotation(servoPositions.STOPPED);}
         public void start() {setRotation(servoPositions.ROTATING);}
         public void reverse() {setRotation(servoPositions.REVERSED);}
+
+        public ArtifactType getInternalColor() {
+            return ArtifactType.GREEN;
+        }
     }
 
     public static class Lock extends SubsystemBase {
@@ -278,13 +333,16 @@ public class Hardware {
         public double targetVelocity = 0;
         public double velError;
         public double powerAmount = 0;
+        public Servo led;
         PIDFController velocityPIDController = new PIDFController(new PIDFCoefficients(0.025, 0, 0, 0));
 
-        public Shooter(ServoEx myPitchServo, MotorEx myLauncherMotor, boolean isInverted) {
+        public Shooter(ServoEx myPitchServo, MotorEx myLauncherMotor, boolean isInverted, Servo colorLED) {
             pitchServo = myPitchServo;
             launcherMotor = myLauncherMotor;
             launcherMotor.setInverted(isInverted);
             launcherMotor.stopMotor();
+            led = colorLED;
+            led.setPosition(0);
             //launcherMotor.setZeroPowerBehavior(Motor.ZeroPowerBehavior.BRAKE);
         }
 
@@ -316,6 +374,18 @@ public class Hardware {
                 pitchServo.setPosition((pitchToPoint * 0.5) + 0.5);
             } else {
                 pitchServo.setPosition(((1-pitchToPoint) * 0.85) + 0.15);
+            }
+        }
+
+        public void setLEDColor(ArtifactType color) {
+            if (color == ArtifactType.NONE) {
+                led.setPosition(0);
+            } else if (color == ArtifactType.PURPLE) {
+                led.setPosition(0.722); //purple
+            } else if (color == ArtifactType.GREEN) {
+                led.setPosition(0.500); //green
+            } else {
+                led.setPosition(1); //white
             }
         }
     }
@@ -537,7 +607,7 @@ public class Hardware {
     }
 
     public static double distanceToGoal(Teams team, Pose position) {
-        Pose poseToUse = team == Teams.BLUE ? new Pose(14, 130) : new Pose(130, 130);
+        Pose poseToUse = team == Teams.BLUE ? new Pose(130, 130).mirror() : new Pose(135, 130);
         return Math.sqrt(
                 Math.pow((position.getX() - poseToUse.getX()), 2)
                         +
@@ -687,9 +757,13 @@ public class Hardware {
         double yToReturn = 0;
         double headingToReturn = 0;
         for (AprilTagDetection detection : currentDetections) {
-            if (detection.id == 24 || detection.id == 20) {
+            if (detection.id == 24) {
                 yToReturn = (-detection.robotPose.getPosition().x - 4) + 72;
                 xToReturn = (detection.robotPose.getPosition().y - 4) + 72;
+                headingToReturn = Math.toRadians(detection.robotPose.getOrientation().getYaw());
+            } else if (detection.id == 20) {
+                yToReturn = (-detection.robotPose.getPosition().x - 4) + 72;
+                xToReturn = (detection.robotPose.getPosition().y + 3) + 72;
                 headingToReturn = Math.toRadians(detection.robotPose.getOrientation().getYaw());
             }
         }
