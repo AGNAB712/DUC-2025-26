@@ -6,7 +6,6 @@ import com.pedropathing.control.PIDFController;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -20,30 +19,24 @@ import java.util.List;
 
 @Autonomous(name = "BlueFar", group = "far")
 @Configurable
-@Disabled
-public class BlueFar extends OpMode {
+public class BlueNewFar extends OpMode {
 
     private Follower follower;
-    private Timer pathTimer, actionTimer;
+    private Timer pathTimer;
     private ElapsedTime opmodeTimer;
 
     private int pathState;
     public Hardware robot;
     public BluePath pathMaster;
-    static double targetVelocity = 1200;
     double lastVelocityLeft = 0;
     double lastVelocityRight = 0;
-    double atVelTicks = 0;
     boolean leftIsShooting = false;
     boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
     static double velocityForMidShooting = 1650-100;
     int shootToResetTo = 0;
-    int timesHasShot = 0;
-    static int delaySeconds = 5;
-    boolean sorterGoesCrazy = false;
-    ElapsedTime shotTimer = new ElapsedTime(100000000);
+    static int delaySeconds = 2;
     PIDFController shooterVelocityPIDController;
     static PIDFCoefficients shooterVelPIDCoeffs = new PIDFCoefficients(0.03, 0.0, 0.00001, 0);
     public List<Hardware.ArtifactType> sequence = new ArrayList<>();
@@ -58,7 +51,7 @@ public class BlueFar extends OpMode {
                 List<AprilTagDetection> currentDetections = robot.aprilTag.getDetections();
 
                 for (AprilTagDetection detection : currentDetections) {
-                    if (detection.id == 21) { //once again.... make this a function... please
+                    if (detection.id == 21) {
                         sequence.add(Hardware.ArtifactType.GREEN);
                         sequence.add(Hardware.ArtifactType.PURPLE);
                         sequence.add(Hardware.ArtifactType.PURPLE);

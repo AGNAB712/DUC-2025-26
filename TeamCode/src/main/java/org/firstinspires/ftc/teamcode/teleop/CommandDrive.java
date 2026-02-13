@@ -173,13 +173,13 @@ public class CommandDrive extends OpMode {
         }
         if (isIntaking) {
             if (gamepad1.dpad_down) {
-                //robot.chuteLeft.reverse();
+                robot.chuteLeft.reverse();
                 robot.chuteRight.reverse();
                 robot.intakeFront.reverse();
-                //robot.intakeBack.reverse();
+                robot.intakeBack.reverse();
             } else {
                 if (gamepad1.left_trigger < 0.5 && !robot.lock.isOpen) { //if we are not trying to shoot and the lock is closed
-                    //robot.chuteLeft.start();
+                    robot.chuteLeft.start();
                 } else if (!leftIsShooting) { //ok lock is probably open
                     robot.chuteLeft.stop();
                 }
@@ -195,7 +195,7 @@ public class CommandDrive extends OpMode {
                     robot.intakeBack.stop();
                 } else {
                     robot.intakeFront.start();
-                    //robot.intakeBack.start();
+                    robot.intakeBack.start();
                 }
 
 

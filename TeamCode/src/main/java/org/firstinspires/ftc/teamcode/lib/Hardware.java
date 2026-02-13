@@ -116,7 +116,8 @@ public class Hardware {
         //1 - leftChute
         //2 - intakeBack
         //3 - rightChute
-        //NEED - ledLeft ledRight
+        //4 - ledLeft
+        //5 - ledRight
 
         //motors:
         //0 - shooterLeft
@@ -126,7 +127,8 @@ public class Hardware {
 
         //i2c:
         //bus 0 - lensBack
-        //NEED - colorSensorRight, colorSensorLeft
+        //bus 1 - colorSensorLeft
+        //bus 2 - colorSensorRight
 
         //Control:
         //servos:
