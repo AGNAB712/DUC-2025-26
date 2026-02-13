@@ -172,6 +172,8 @@ public class CommandDrive extends OpMode {
             isIntaking = !isIntaking;
         }
         if (isIntaking) {
+            robot.shooterLeft.setLEDColor(robot.chuteLeft.getArtifactColor());
+            robot.shooterRight.setLEDColor(robot.chuteRight.getArtifactColor());
             if (gamepad1.dpad_down) {
                 robot.chuteLeft.reverse();
                 robot.chuteRight.reverse();
@@ -202,6 +204,8 @@ public class CommandDrive extends OpMode {
 
             }
         } else {
+            robot.shooterLeft.setLEDColor(Hardware.ArtifactType.NONE);
+            robot.shooterRight.setLEDColor(Hardware.ArtifactType.NONE);
             if (!leftIsShooting) {
                 robot.chuteLeft.stop();
             }
@@ -305,6 +309,15 @@ public class CommandDrive extends OpMode {
         if (gamepad2.bWasPressed()) {
             manualSorting = !manualSorting;
         }
+        if (manualSorting) {
+            if (gamepad2.right_stick_x > 0.25) {
+                robot.sorter.green(false);
+            } else if (gamepad2.right_stick_x < -0.25) {
+                robot.sorter.purple(false);
+            } else {
+                robot.sorter.neutral();
+            }
+        }
 
         if (robot.intakeFront.isRotating && !manualSorting && false) {
             Hardware.ArtifactType detectedFront = robot.getCameraArtifactColor();
@@ -382,6 +395,9 @@ public class CommandDrive extends OpMode {
         telemetryM.addData("pitch right", robot.shooterRight.pitchServo.getPosition());
         telemetryM.addData("pitch left", robot.shooterLeft.pitchServo.getPosition());
         telemetryM.addData("is in danger zone?", robot.isInDangerZone(follower.getPose(), team));
+        telemetryM.addData("leftColorRed", robot.chuteLeft.getInternalColor()[0]);
+        telemetryM.addData("leftColorGreen", robot.chuteLeft.getInternalColor()[1]);
+        telemetryM.addData("leftColorBlue", robot.chuteLeft.getInternalColor()[2]);
         telemetryM.addData("lock", manualLock);
 
         telemetryM.update(telemetry);

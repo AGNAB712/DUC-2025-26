@@ -268,8 +268,19 @@ public class Hardware {
         public void start() {setRotation(servoPositions.ROTATING);}
         public void reverse() {setRotation(servoPositions.REVERSED);}
 
-        public ArtifactType getInternalColor() {
-            return ArtifactType.GREEN;
+        public double[] getInternalColor() {
+
+            return new double[]{ colorSensor.red(), colorSensor.green(), colorSensor.blue() };
+        }
+
+        public ArtifactType getArtifactColor() {
+            if (colorSensor.blue() > 1000 && colorSensor.green() > 1000) {
+                if (colorSensor.blue() > colorSensor.green()) {
+                    return ArtifactType.PURPLE;
+                }
+                return ArtifactType.GREEN;
+            }
+            return ArtifactType.NONE;
         }
     }
 
