@@ -215,7 +215,7 @@ public class CommandDrive extends OpMode {
             robot.intakeFront.stop();
             robot.intakeBack.stop();
         }
-        if (!manualSorting) {
+        /*if (!manualSorting) {
             if (gamepad1.dpad_left) {
                 robot.sorter.green(false);
                 robot.shooterLeft.setLEDColor(Hardware.ArtifactType.GREEN);
@@ -226,7 +226,7 @@ public class CommandDrive extends OpMode {
                 robot.sorter.neutral();
                 robot.shooterLeft.setLEDColor(Hardware.ArtifactType.NONE);
             }
-        }
+        }*/ //driver control
 
 
         if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
@@ -310,6 +310,10 @@ public class CommandDrive extends OpMode {
             manualSorting = !manualSorting;
         }
         if (manualSorting) {
+            if (robot.visionPortal.getProcessorEnabled(robot.ducProcessorArtifacts)) {
+                robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, false);
+            }
+            
             if (gamepad2.right_stick_x > 0.25) {
                 robot.sorter.green(false);
             } else if (gamepad2.right_stick_x < -0.25) {
@@ -317,20 +321,16 @@ public class CommandDrive extends OpMode {
             } else {
                 robot.sorter.neutral();
             }
+        } else {
+            if (!robot.visionPortal.getProcessorEnabled(robot.ducProcessorArtifacts)) {
+                robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, true);
+            }
         }
 
-        if (robot.intakeFront.isRotating && !manualSorting && false) {
+        if (robot.intakeFront.isRotating && !manualSorting) {
             Hardware.ArtifactType detectedFront = robot.getCameraArtifactColor();
-            Hardware.ArtifactType detectedBack = Hardware.ArtifactType.NONE;
             telemetryM.addData("dfront", detectedFront);
-            telemetryM.addData("dback", detectedBack);
-            if (detectedFront != Hardware.ArtifactType.NONE) {
-                robot.sorter.updateServo(detectedFront, false);
-            } else if (detectedBack != Hardware.ArtifactType.NONE) {
-                robot.sorter.updateServo(detectedBack, true);
-            } else {
-                robot.sorter.updateServo(Hardware.ArtifactType.NONE, false);
-            }
+            robot.sorter.updateServo(detectedFront, false);
         }
 
         CommandScheduler.getInstance().run();
@@ -357,11 +357,16 @@ public class CommandDrive extends OpMode {
 
         if (gamepad1.shareWasPressed()) {
             robot.visionPortal.setActiveCamera(robot.webcam1);
+            robot.visionPortal.setProcessorEnabled(robot.aprilTag, true);
+            robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, false);
 
             Pose newPosition = robot.getPositionFromAprilTag();
             if (newPosition.getX() != 0 && newPosition.getY() != 0) {
                 follower.setPose(newPosition);
                 gamepad1.rumble(500);
+                //switch processors
+                robot.visionPortal.setProcessorEnabled(robot.aprilTag, false);
+                robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, true);
                 robot.visionPortal.setActiveCamera(robot.webcam2);
             }
         }

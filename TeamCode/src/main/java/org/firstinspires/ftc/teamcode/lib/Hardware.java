@@ -177,7 +177,7 @@ public class Hardware {
                 .addProcessor(ducProcessorArtifacts)
                 .addProcessor(aprilTag)
                 .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
-                .enableLiveView(true)
+                .enableLiveView(false)
                 //.setCameraResolution(new Size(160, 120))
                 .build();
     }
