@@ -33,7 +33,7 @@ public class RedFar extends OpMode {
     boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
-    static double velocityForMidShooting = 1625-100;
+    static double velocityForMidShooting = 1625-200;
     int shootToResetTo = 0;
     int timesHasShot = 0;
     static int delaySeconds = 5;

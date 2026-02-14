@@ -174,7 +174,7 @@ public class Hardware {
 
         visionPortal = new VisionPortal.Builder()
                 .setCamera(switchableCamera)
-                .addProcessor(ducProcessorArtifacts)
+                //.addProcessor(ducProcessorArtifacts)
                 .addProcessor(aprilTag)
                 .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                 .enableLiveView(false)
@@ -274,7 +274,7 @@ public class Hardware {
         }
 
         public ArtifactType getArtifactColor() {
-            if (colorSensor.blue() > 1000 && colorSensor.green() > 1000) {
+            if (colorSensor.blue() > 500 && colorSensor.green() > 500) {
                 if (colorSensor.blue() > colorSensor.green()) {
                     return ArtifactType.PURPLE;
                 }
@@ -298,7 +298,7 @@ public class Hardware {
         public void close() {
             isOpen = false;
 
-            chuteLock.setPosition(0.69);
+            chuteLock.setPosition(0.64);
         }
     }
 

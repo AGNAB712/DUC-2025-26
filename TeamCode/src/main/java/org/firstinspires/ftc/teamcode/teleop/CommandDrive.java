@@ -50,7 +50,7 @@ public class CommandDrive extends OpMode {
     double headingOffset = 0;
     double velocityError = 0;
     double thePowerForTheLauncher = 0;
-    static double velocityOffset = -100;
+    static double velocityOffset = -150;
     boolean isIntaking = false;
     Hardware.Teams team = Hardware.Teams.BLUE;
     Hardware robot;
@@ -310,9 +310,9 @@ public class CommandDrive extends OpMode {
             manualSorting = !manualSorting;
         }
         if (manualSorting) {
-            if (robot.visionPortal.getProcessorEnabled(robot.ducProcessorArtifacts)) {
+            /*if (robot.visionPortal.getProcessorEnabled(robot.ducProcessorArtifacts)) {
                 robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, false);
-            }
+            }*/
             
             if (gamepad2.right_stick_x > 0.25) {
                 robot.sorter.green(false);
@@ -322,9 +322,9 @@ public class CommandDrive extends OpMode {
                 robot.sorter.neutral();
             }
         } else {
-            if (!robot.visionPortal.getProcessorEnabled(robot.ducProcessorArtifacts)) {
+            /*if (!robot.visionPortal.getProcessorEnabled(robot.ducProcessorArtifacts)) {
                 robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, true);
-            }
+            }*/
         }
 
         if (robot.intakeFront.isRotating && !manualSorting) {
@@ -357,17 +357,17 @@ public class CommandDrive extends OpMode {
 
         if (gamepad1.shareWasPressed()) {
             robot.visionPortal.setActiveCamera(robot.webcam1);
-            robot.visionPortal.setProcessorEnabled(robot.aprilTag, true);
-            robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, false);
+            //robot.visionPortal.setProcessorEnabled(robot.aprilTag, true);
+            //robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, false);
 
             Pose newPosition = robot.getPositionFromAprilTag();
             if (newPosition.getX() != 0 && newPosition.getY() != 0) {
                 follower.setPose(newPosition);
                 gamepad1.rumble(500);
                 //switch processors
-                robot.visionPortal.setProcessorEnabled(robot.aprilTag, false);
-                robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, true);
-                robot.visionPortal.setActiveCamera(robot.webcam2);
+                //robot.visionPortal.setProcessorEnabled(robot.aprilTag, false);
+                //robot.visionPortal.setProcessorEnabled(robot.ducProcessorArtifacts, true);
+                //robot.visionPortal.setActiveCamera(robot.webcam2);
             }
         }
         if (gamepad2.shareWasPressed()) {

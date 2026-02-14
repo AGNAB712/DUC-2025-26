@@ -17,7 +17,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "BlueFar", group = "far")
+@Autonomous(name = "BlueFarHP", group = "far")
 @Configurable
 public class BlueNewFar extends OpMode {
 
@@ -34,7 +34,7 @@ public class BlueNewFar extends OpMode {
     boolean rightIsShooting = false;
     boolean leftHasShot = false;
     boolean rightHasShot = false;
-    static double velocityForMidShooting = 1650-100;
+    static double velocityForMidShooting = 1650-200;
     int shootToResetTo = 0;
     static int delaySeconds = 2;
     PIDFController shooterVelocityPIDController;
@@ -55,17 +55,17 @@ public class BlueNewFar extends OpMode {
                         sequence.add(Hardware.ArtifactType.GREEN);
                         sequence.add(Hardware.ArtifactType.PURPLE);
                         sequence.add(Hardware.ArtifactType.PURPLE);
-                        setPathState(4);
+                        setPathState(75);
                     } else if (detection.id == 22) {
                         sequence.add(Hardware.ArtifactType.PURPLE);
                         sequence.add(Hardware.ArtifactType.GREEN);
                         sequence.add(Hardware.ArtifactType.PURPLE);
-                        setPathState(4);
+                        setPathState(75);
                     } else if (detection.id == 23) {
                         sequence.add(Hardware.ArtifactType.PURPLE);
                         sequence.add(Hardware.ArtifactType.PURPLE);
                         sequence.add(Hardware.ArtifactType.GREEN);
-                        setPathState(4);
+                        setPathState(75);
                     }
                 }
                 break;
@@ -81,19 +81,36 @@ public class BlueNewFar extends OpMode {
 
             case 2:
                 if (!follower.isBusy()) {
-                    follower.followPath(pathMaster.FarShootToHP);
+                    robot.shooterRight.launcherMotor.set(0);
+                    robot.shooterLeft.launcherMotor.set(0);
+                    robot.intakeFront.start();
+                    robot.chuteLeft.start();
+                    robot.chuteRight.start();
+                    follower.followPath(pathMaster.FarShootToHPPickup);
                     setPathState(3);
                 }
                 break;
             case 3:
                 if (!follower.isBusy()) {
-                    robot.shooterRight.launcherMotor.set(0);
-                    robot.shooterLeft.launcherMotor.set(0);
-                    setPathState(-1);
+                    follower.followPath(pathMaster.HPLinePickup);
+                    robot.sorter.purple(false);
+                    setPathState(4);
+                }
+                break;
+            case 4:
+                if (!follower.isBusy()) {
+                    follower.followPath(pathMaster.HPPickupToShoot);
+                    setPathState(5);
+                    shootToResetTo = 5;
+                    sequence = new ArrayList<>();
+                    sequence.add(Hardware.ArtifactType.PURPLE);
+                    sequence.add(Hardware.ArtifactType.PURPLE);
+                    sequence.add(Hardware.ArtifactType.PURPLE);
+                    setPathState(100);
                 }
                 break;
 
-            case 4:
+            case 75:
                 keepShooterAtVelocity(robot.shooterLeft, velocityForMidShooting);
                 keepShooterAtVelocity(robot.shooterRight, velocityForMidShooting);
                 if (opmodeTimer.seconds() >= delaySeconds) {

@@ -30,6 +30,9 @@ public class BluePath {
     public PathChain ShootToLeave;
     public PathChain FarStartToShoot;
     public PathChain FarShootToHP;
+    public PathChain FarShootToHPPickup;
+    public PathChain HPLinePickup;
+    public PathChain HPPickupToShoot;
 
 
     public BluePath(Follower follower) {
@@ -39,6 +42,30 @@ public class BluePath {
                         new BezierLine(shootFarPosition, new Pose(14, 10))
                 )
                 .setLinearHeadingInterpolation(shootFarPosition.getHeading(), 0)
+                .build();
+        FarShootToHPPickup = follower.pathBuilder().addPath(
+                        new BezierCurve(
+                                new Pose(shootFarPosition.getX(), shootFarPosition.getY()),
+                                new Pose(24.760, 11.460),
+                                new Pose(8.720, 25.440)
+                        )
+                ).setLinearHeadingInterpolation(shootFarPosition.getHeading(), Math.toRadians(270))
+                .build();
+        HPLinePickup = follower.pathBuilder().addPath(
+                    new BezierLine(
+                            new Pose(8.720, 25.440),
+
+                            new Pose(8.800, 8.200)
+                    )
+                ).setTangentHeadingInterpolation()
+                .build();
+        HPPickupToShoot = follower.pathBuilder().addPath(
+                        new BezierCurve(
+                                new Pose(8.800, 8.200),
+                                new Pose(24.440, 20.840),
+                                new Pose(shootFarPosition.getX(), shootFarPosition.getY())
+                        )
+                ).setLinearHeadingInterpolation(shootFarPosition.getHeading(), Math.toRadians(135))
                 .build();
         FarStartToShoot = follower
                 .pathBuilder()
